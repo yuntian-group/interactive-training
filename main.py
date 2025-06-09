@@ -1,16 +1,12 @@
 import os
-import time
-import torch
-import numpy as np
-from pathlib import Path
 from datasets import load_dataset
-from trainer.interactive_callback import InteractiveTrainerCallback
+from trainer.interactive_training_wrapper import InteractiveTrainingWrapper
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
     DataCollatorWithPadding,
-    TrainingArguments,
     Trainer,
+    TrainingArguments,
 )
 
 
@@ -31,6 +27,18 @@ def main():
         )  # 256 ≃ GPU-friendly, adjust if you like
 
     tokenized = raw_datasets.map(tokenize_fn, batched=True, remove_columns=["text"])
+    args = TrainingArguments(
+        output_dir="./imdb_bert",
+        evaluation_strategy="epoch",
+        save_strategy="epoch",
+        logging_strategy="epoch",
+        learning_rate=2e-5,
+        per_device_train_batch_size=8,
+        per_device_eval_batch_size=8,
+        num_train_epochs=300,
+        weight_decay=0.01,
+        load_best_model_at_end=True,
+    )
 
     model = AutoModelForSequenceClassification.from_pretrained(
         checkpoint,
@@ -39,42 +47,19 @@ def main():
         label2id=label2id,
     )
 
-    optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=2e-5,
-        weight_decay=0.01,
-    )
-
-    cb = InteractiveTrainerCallback(
-        os.getenv("SERVER_HOST", "localhost"),
-        os.getenv("SERVER_PORT", "9876"),
-        model=model,
-        optimizer=optimizer,
-    )
-
-    args = TrainingArguments(
-        output_dir="bert-imdb-sentiment",
-        weight_decay=0.01,
-        per_device_train_batch_size=8,
-        per_device_eval_batch_size=8,
-        num_train_epochs=20,
-        save_strategy="epoch",
-        logging_steps=100,
-        report_to="wandb",  # set to "tensorboard" or "wandb" if you prefer
-    )
-
     trainer = Trainer(
         model=model,
-        optimizers=(optimizer, None),  # No scheduler for simplicity
         args=args,
         train_dataset=tokenized["train"],
         eval_dataset=tokenized["test"],  # IMDb has a ready-made test split
         tokenizer=tokenizer,
         data_collator=DataCollatorWithPadding(tokenizer),
-        callbacks=[cb],
     )
 
-    trainer.train()
+    # trainer.train()
+
+    interactive_trainer = InteractiveTrainingWrapper(trainer)
+    interactive_trainer.train()
 
 
 if __name__ == "__main__":
