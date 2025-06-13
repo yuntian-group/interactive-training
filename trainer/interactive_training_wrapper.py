@@ -12,21 +12,24 @@ from trainer.constants import (
     COMMAND_TO_TYPE,
     WRAPER_CONTROL_COMMAND_TYPE,
     SAVE_CHECKPOINT,
-    TRAIN_INFO_UPDATE,
+    UPDATE_OPTIMIZER,
+    CHECKPOINT_INFO_UPDATE,
+    TRAIN_STATE_UPDATE,
+    LOAD_CHECKPOINT,
+    SUCCESS,
     Cmd,
 )
 
-from trainer.callbacks import (
-    InteractiveCallback,
-    CheckpointCallback,
-    InfoCollectCallback,
-)
+from trainer.callbacks import InteractiveCallback, CheckpointCallback
 
 
 class InteractiveServerState:
     checkpoints: List[dict] = []
     commands_history: List[dict] = []
     model_infos: Dict[str, str] = {}
+    optimizer_states: Dict[str, float] = {}
+    start_time: float = 0.0
+    status: str = "init"
 
 
 class InteractiveServer:
@@ -59,6 +62,7 @@ class InteractiveServer:
         }
 
         self._train_state = InteractiveServerState()
+        self._train_state_lock = threading.Lock()
         self._event_listeners: set[WebSocket] = set()
         self._loop: asyncio.AbstractEventLoop | None = None
         self._app_thread: threading.Thread | None = None
@@ -128,32 +132,88 @@ class InteractiveServer:
         self.messages_queue_by_type[command_type].put(cmd)
 
     def update_server_state(self, event: dict):
-        if event["status"] != "success":
+
+        if event["status"] != SUCCESS:
             print(f"Received event with error status: {event}")
             return
 
-        self._train_state.commands_history.append(event)
+        if event["command"] not in {
+            CHECKPOINT_INFO_UPDATE,
+            TRAIN_STATE_UPDATE,
+            UPDATE_OPTIMIZER,
+        }:
+            print("No need to update server")
+            return
 
-        if event["command"] == SAVE_CHECKPOINT:
-            checkpoint_info = {
-                "command": event["command"],
-                "args": event["args"],
-                "metadata": event.get("metadata", {}),
-            }
-            self._train_state.checkpoints.append(checkpoint_info)
+        with self._train_state_lock:
+            self._train_state.commands_history.append(event)
 
-        if event["command"] == TRAIN_INFO_UPDATE:
-            self._train_state.model_infos = event["metadata"]["model_info"]
+            if event["command"] == CHECKPOINT_INFO_UPDATE:
+                checkpoint_info_json = event.get("args", None)
+                if checkpoint_info_json is None:
+                    print("No checkpoint info provided in event args.")
+                    return
+                try:
+                    checkpoint_info = json.loads(checkpoint_info_json)
+                except json.JSONDecodeError:
+                    print(f"Invalid JSON format in event args: {checkpoint_info_json}")
+                    return
+
+                self._train_state.checkpoints.append(checkpoint_info)
+
+            if event["command"] == TRAIN_STATE_UPDATE:
+                train_state = json.loads(event.get("args", "{}"))
+                self._train_state.model_infos = train_state.get("model_infos", {})
+                self._train_state.optimizer_states = train_state.get(
+                    "optimizer_states", {}
+                )
+                self._train_state.start_time = train_state.get("start_time", 0.0)
+                self._train_state.status = "running"
+
+            if event["command"] == UPDATE_OPTIMIZER:
+                optimizer_info = json.loads(event.get("args", "{}"))
+                self._train_state.optimizer_states.update(optimizer_info)
 
     def _setup_routes(self):
 
-        @self.app.get("/get_info/")
+        @self.app.get("/api/get_info/")
         async def train_state():
             """
             HTTP GET endpoint to retrieve the current training state.
             Returns a JSON representation of the InteractiveServerState.
             """
-            return self._train_state
+            with self._train_state_lock:
+                return {
+                    "start_time": self._train_state.start_time,
+                    "status": self._train_state.status,
+                }
+
+        @self.app.get("/api/get_optimizer_info/")
+        async def get_optimizer_info():
+            """
+            HTTP GET endpoint to retrieve the current training state.
+            Returns a JSON representation of the InteractiveServerState.
+            """
+            with self._train_state_lock:
+                return self._train_state.optimizer_states
+
+        @self.app.get("/api/get_model_info/")
+        async def get_model_info():
+            """
+            HTTP GET endpoint to retrieve the current model information.
+            Returns a JSON representation of the InteractiveServerState.
+            """
+            with self._train_state_lock:
+                return self._train_state.model_infos
+
+        @self.app.get("/api/get_checkpoints/")
+        async def get_checkpoints():
+            """
+            HTTP GET endpoint to retrieve the list of checkpoints.
+            Returns a JSON representation of the InteractiveServerState.
+            """
+            with self._train_state_lock:
+                return self._train_state.checkpoints
 
         @self.app.post("/api/command/")
         async def receive_command(cmd: Cmd):
@@ -169,20 +229,17 @@ class InteractiveServer:
             if command_type not in self.messages_queue_by_type:
                 return {"status": "error", "message": "Unknown command type"}
 
+            # broadcast a response back to all WebSocket clients
+            response_event = cmd.model_dump()
+            response_event["status"] = "pending"
+            self.enqueue_event(response_event)
+
             # Enqueue the command into the appropriate queue
             self.enqueue_message_by_type(command_type, cmd)
 
             if command_type == "load_checkpoint":
                 # Special handling for load_checkpoint command
                 self.enqueue_message_by_type(WRAPER_CONTROL_COMMAND_TYPE, cmd)
-
-            # broadcast a response back to all WebSocket clients
-            response_event = {
-                "type": "command_received",
-                "command": cmd.command,
-                "args": cmd.args,
-            }
-            self.enqueue_event(response_event)
 
             return {"status": "success"}
 
@@ -200,7 +257,7 @@ class InteractiveServer:
                     # Block in a thread for queue.get(); this won't block the event loop.
                     event = await loop.run_in_executor(None, self.events_queue.get)
 
-                    self.update_server_state(event)
+                    # self.update_server_state(event)
 
                     if event is None:
                         # Sentinel received → shutdown this WebSocket
@@ -321,23 +378,13 @@ class InteractiveTrainingWrapper:
         update_callback = InteractiveCallback(
             cmd_queue=self._server.messages_queue_by_type["update"],
             event_queue=self._server.events_queue,
-            model=self.trainer.model,
-            optimizer=self.trainer.optimizer,
-            lr_scheduler=self.trainer.lr_scheduler,
+            server_state_update_callback=self._server.update_server_state,
         )
         checkpoint_callback = CheckpointCallback(
             cmd_queue=self._server.messages_queue_by_type["wrapper_control"],
             event_queue=self._server.events_queue,
+            server_state_update_callback=self._server.update_server_state,
         )
-
-        info_collect_callback = InfoCollectCallback(
-            cmd_queue=self._server.messages_queue_by_type["update"],
-            event_queue=self._server.events_queue,
-            model=self.trainer.model,
-            optimizer=self.trainer.optimizer,
-            lr_scheduler=self.trainer.lr_scheduler,
-        )
-        self.trainer.add_callback(info_collect_callback)
         self.trainer.add_callback(update_callback)
         self.trainer.add_callback(checkpoint_callback)
 
@@ -361,7 +408,7 @@ class InteractiveTrainingWrapper:
             load_config = None
             while not self._wrapper_control_queue.empty():
                 cmd = self._wrapper_control_queue.get()
-                if cmd.command == "load_checkpoint":
+                if cmd.command == LOAD_CHECKPOINT:
                     self._load_message = cmd
                     print(f"Received load_checkpoint command: {cmd}")
                     is_load = True

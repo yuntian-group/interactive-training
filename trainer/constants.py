@@ -3,15 +3,15 @@ from pydantic import BaseModel
 LOAD_CHECKPOINT = "load_checkpoint"
 SAVE_CHECKPOINT = "save_checkpoint"
 STOP_TRAINING = "stop_training"
-SET_LR = "set_lr"
+UPDATE_OPTIMIZER = "update_optimizer"
 RESET_LAYER = "reset_layer"
 DO_EVALUATE = "do_evaluate"
 WRAPPER_RESUME_FOR_LOAD_CHECKPOINT = "wrapper_resume_load_checkpoint"
-TRAIN_INFO_UPDATE = "train_info_update"
+TRAIN_STATE_UPDATE = "train_state_update"
 CHECKPOINT_INFO_UPDATE = "checkpoint_info_update"
 
 
-UPDATE_COMMANDS = {SET_LR, SAVE_CHECKPOINT, RESET_LAYER, DO_EVALUATE}
+UPDATE_COMMANDS = {UPDATE_OPTIMIZER, SAVE_CHECKPOINT, RESET_LAYER, DO_EVALUATE}
 LOAD_COMMANDS = {LOAD_CHECKPOINT}
 CONTROL_COMMANDS = {STOP_TRAINING}
 WRAPPER_CONTROL_COMMANDS = {WRAPPER_RESUME_FOR_LOAD_CHECKPOINT}
@@ -25,7 +25,7 @@ SUCCESS = "success"
 
 
 COMMAND_TO_TYPE = {
-    SET_LR: UPDATE_COMMAND_TYPE,
+    UPDATE_OPTIMIZER: UPDATE_COMMAND_TYPE,
     SAVE_CHECKPOINT: UPDATE_COMMAND_TYPE,
     RESET_LAYER: UPDATE_COMMAND_TYPE,
     DO_EVALUATE: UPDATE_COMMAND_TYPE,
@@ -34,15 +34,25 @@ COMMAND_TO_TYPE = {
     WRAPPER_RESUME_FOR_LOAD_CHECKPOINT: WRAPER_CONTROL_COMMAND_TYPE,
 }
 
+CMD_REQUESTED = "requested"
+CMD_PENDING = "pending"
+CMD_RUNING = "running"
+CMD_COMPELTED = "completed"
+CMD_FAILED = "failed"
+
 
 EVENT_MESSAGE_TEMPLATE = {
     "status": SUCCESS,
     "command": "",
     "args": "",
-    "metadata": "",
+    "uuid": "",
+    "time": 0.0,
 }
 
 
 class Cmd(BaseModel):
     command: str
     args: str = None
+    time: float
+    uuid: str
+    status: str

@@ -1,9 +1,8 @@
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 import type { trainEventState } from "./types";
 
 const initialState: trainEventState = {
   connected: false,
-  messages: [],
 };
 
 const trainEventSlice = createSlice({
@@ -12,12 +11,17 @@ const trainEventSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addMatcher(
-        (action): action is PayloadAction<any> => action.type === "WS_RECEIVED",
-        (state, action) => {
-          state.messages.push(action.payload);
-        }
-      )
+      // .addMatcher(
+      //   (action): action is PayloadAction<any> => action.type === "WS_RECEIVED",
+      //   (state, action) => {
+      //     console.log(
+      //       "Received WebSocket message:",
+      //       action.payload,
+      //       state.messages
+      //     );
+      //     state.messages.push(action.payload);
+      //   }
+      // )
       .addMatcher(
         (action) => action.type === "WS_CONNECT",
         (state) => {

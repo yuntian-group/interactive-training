@@ -29,15 +29,15 @@ def main():
     tokenized = raw_datasets.map(tokenize_fn, batched=True, remove_columns=["text"])
     args = TrainingArguments(
         output_dir="./imdb_bert",
-        evaluation_strategy="epoch",
-        save_strategy="epoch",
-        logging_strategy="epoch",
-        learning_rate=2e-5,
+        eval_strategy="no",
+        logging_strategy="steps",
+        do_eval=False,
+        logging_steps=100,
+        learning_rate=1.1415e-5,
         per_device_train_batch_size=8,
         per_device_eval_batch_size=8,
         num_train_epochs=300,
-        weight_decay=0.01,
-        load_best_model_at_end=True,
+        weight_decay=0.0,
     )
 
     model = AutoModelForSequenceClassification.from_pretrained(
@@ -55,6 +55,8 @@ def main():
         tokenizer=tokenizer,
         data_collator=DataCollatorWithPadding(tokenizer),
     )
+
+    # print(trainer.lr_scheduler)
 
     # trainer.train()
 

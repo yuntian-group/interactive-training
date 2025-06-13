@@ -38,5 +38,4 @@ export type WebSocketActions =
 
 export interface trainEventState {
   connected: boolean;
-  messages: any[];
 }

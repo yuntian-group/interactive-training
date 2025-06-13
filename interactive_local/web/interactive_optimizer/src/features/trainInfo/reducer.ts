@@ -1,34 +1,41 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import { trainCommand } from "./actions";
-import type { trainInfoState } from "./types";
+import { getTrainInfoForInitializaiton } from "./actions";
+import type trainInfoState from "./types";
+import type { TrainInfoData } from "./types";
 
 const initialState: trainInfoState = {
-  trainState: "",
+  trainInfo: {
+    start_time: 0,
+    status: "unknown",
+  },
   loading: false,
   error: null,
-  response: null,
 };
 
 const trainInfoSlice = createSlice({
   name: "trainInfo",
   initialState,
-  reducers: {},
+  reducers: {
+    updateTrainInfo: (state, action: PayloadAction<TrainInfoData>) => {
+      state.trainInfo = action.payload;
+    },
+  },
   extraReducers: (builder) => {
     builder
-      .addCase(trainCommand.pending, (state) => {
+      .addCase(getTrainInfoForInitializaiton.pending, (state) => {
         state.loading = true;
         state.error = null;
-        state.response = null;
       })
-      .addCase(trainCommand.fulfilled, (state, action: PayloadAction<any>) => {
+      .addCase(getTrainInfoForInitializaiton.fulfilled, (state) => {
         state.loading = false;
-        state.response = action.payload;
+        state.error = null;
       })
-      .addCase(trainCommand.rejected, (state, action) => {
+      .addCase(getTrainInfoForInitializaiton.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error?.message || "Failed to execute command";
       });
   },
 });
 
+export const { updateTrainInfo } = trainInfoSlice.actions;
 export default trainInfoSlice.reducer;

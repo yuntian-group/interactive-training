@@ -2,6 +2,7 @@ import clsx from "clsx";
 import React, {useState } from "react";
 import SideControl from "./sideControl";
 import OptimizerControl from "./optimizerControl";
+import CheckpointControl from "./checkPointControl";
 
 type Props = React.HTMLAttributes<HTMLDivElement>;
 
@@ -16,8 +17,8 @@ const ControlBar: React.FC<Props> = ({ className }: Props) => {
             }} initActiveItem="Info" />
             {/* Render the active panel based on the selected item */}
             {activePanel === "Info" && <div className="flex-1 w-full h-full">Info Panel Content</div>}
-            {activePanel === "Optimizer" && <OptimizerControl className="w-full h-full" />}
-            {activePanel === "Checkpoint" && <div  className="flex-1 w-full h-full">Checkpoint Panel Content</div>}
+            {activePanel === "Optimizer" && <OptimizerControl className="flex-1 flex-col w-full h-full" />}
+            {activePanel === "Checkpoint" && <CheckpointControl className="flex-1 flex-col w-full h-full" />}
             {activePanel === "Dataset" && <div  className="flex-1 w-full h-full">Dataset Panel Content</div>}
         </div>
     );

@@ -3,13 +3,16 @@ import trainEventReducer from "../features/trainEventWebsocket/reducer";
 import { websocketMiddleware } from "../features/trainEventWebsocket/middleware";
 import trainCommandReducer from "../features/trainCommand/reducer";
 import trainInfoReducer from "../features/trainInfo/reducer";
-
+import optimizerStateReducer from "../features/optimizerState/reducer";
+import checkpointStateReducer from "../features/checkpointState/reducer";
 // Define the store
 export const store = configureStore({
   reducer: {
     trainEvent: trainEventReducer,
     trainCommand: trainCommandReducer,
     trainInfo: trainInfoReducer,
+    optimizerState: optimizerStateReducer,
+    checkpointState: checkpointStateReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(websocketMiddleware),

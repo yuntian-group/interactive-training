@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import React, { useState } from "react";
-import { SlidersHorizontal, Database, Info, Save } from "lucide-react"; // Or replace with any icon set you use
+import { SlidersHorizontal, Database, Info, Save, Brain } from "lucide-react"; // Or replace with any icon set you use
 
 type MenuItem = {
   label: string;
@@ -11,6 +11,7 @@ type MenuItem = {
 const menuItems: MenuItem[] = [
   { label: "Info", icon: <Info size={20} /> },
   { label: "Optimizer", icon: <SlidersHorizontal size={20} /> },
+  { label: "Model", icon: <Brain size={20} /> },
   { label: "Checkpoint", icon: <Save size={20} /> },
   { label: "Dataset", icon: <Database size={20} /> },
 ];
