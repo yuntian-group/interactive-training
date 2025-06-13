@@ -162,7 +162,11 @@ class InteractiveServer:
                 self._train_state.checkpoints.append(checkpoint_info)
 
             if event["command"] == TRAIN_STATE_UPDATE:
+
                 train_state = json.loads(event.get("args", "{}"))
+
+                print("update train state", train_state)
+
                 self._train_state.model_infos = train_state.get("model_infos", {})
                 self._train_state.optimizer_states = train_state.get(
                     "optimizer_states", {}

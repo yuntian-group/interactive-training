@@ -29,7 +29,7 @@ export const getOptimizerState = async () => {
 
 export const getCheckpointInfo = async () => {
   try {
-    const response = await api.get("/api/get_checkpoint/");
+    const response = await api.get("/api/get_checkpoints/");
     return response;
   } catch (error) {
     throw error;

@@ -49,22 +49,10 @@ const optimizerStateSlice = createSlice({
       })
       .addCase(
         getOptimizerStateFromServer.fulfilled,
-        (state, action: PayloadAction<any>) => {
+        (state, action: PayloadAction<Record<string, OptimizerData>>) => {
           state.loading = false;
           state.response = action.payload;
-          if (action.payload && action.payload.optimizer_state) {
-            state.optimizer_state = Object.fromEntries(
-              Object.entries(action.payload.optimizer_state).map(
-                ([key, value]) => [
-                  key,
-                  {
-                    name: key,
-                    value: value as number,
-                  } as OptimizerData,
-                ]
-              )
-            );
-          }
+          state.optimizer_state = action.payload;
         }
       )
       .addCase(getOptimizerStateFromServer.rejected, (state, action) => {

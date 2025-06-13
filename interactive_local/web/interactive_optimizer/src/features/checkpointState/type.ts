@@ -1,7 +1,7 @@
 export interface CheckpointData {
-  name: string;
   time: number;
-  path: string;
+  checkpoint_dir: string;
+  uuid: string;
 }
 
 export default interface optimizerState {

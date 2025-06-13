@@ -1,3 +1,4 @@
+import os
 import time
 import uuid
 import json
@@ -154,7 +155,13 @@ class CheckpointCallback(InteractiveCallbackBase):
 
         msg_ckpt = EVENT_MESSAGE_TEMPLATE.copy()
         msg_ckpt["command"] = CHECKPOINT_INFO_UPDATE
-        msg_ckpt["args"] = json.dumps({"checkpoint_dir": last_ckpt_dir})
+        msg_ckpt["args"] = json.dumps(
+            {
+                "checkpoint_dir": last_ckpt_dir,
+                "time": os.path.getctime(last_ckpt_dir),
+                "uuid": str(uuid.uuid4()),
+            }
+        )
         self._server_upate_callback(msg_ckpt)
         self._event_queue.put(msg_ckpt)
 
