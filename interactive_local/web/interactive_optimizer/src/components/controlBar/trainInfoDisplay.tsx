@@ -1,5 +1,4 @@
 import clsx from "clsx";
-import React, { useState, useEffect } from "react";
 import { useAppSelector } from "../../hooks/userTypedHooks";
 
 const TrainInfoDisplay: React.FC<{

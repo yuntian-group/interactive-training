@@ -24,9 +24,9 @@ from trainer.constants import (
 class InteractiveCallbackBase(TrainerCallback):
     def __init__(
         self,
-        cmd_queue: queue.Queue,
-        event_queue: queue.Queue,
-        server_state_update_callback: Callable,
+        cmd_queue: queue.Queue = None,
+        event_queue: queue.Queue = None,
+        server_state_update_callback: Callable = None,
     ):
         """
         Base class for interactive callbacks that handle commands and events.
@@ -51,7 +51,7 @@ class InteractiveCallback(InteractiveCallbackBase):
         try:
             update_body = json.loads(update_body_json)
             if "lr" in update_body:
-                new_lr = update_body["lr"]
+                new_lr = update_body["lr"]["value"]
                 print(f"Updating optimizer learning rate to {new_lr}")
             return True
 
@@ -84,11 +84,8 @@ class InteractiveCallback(InteractiveCallbackBase):
             "time": time.time(),
         }
         msg["args"] = json.dumps(all_info)
-
         print("initial info", all_info)
-
         self._server_upate_callback(msg)
-
         self._event_queue.put(msg)
 
     def on_step_end(self, args, state, control, **kwargs):
@@ -166,9 +163,20 @@ class CheckpointCallback(InteractiveCallbackBase):
         self._event_queue.put(msg_ckpt)
 
 
-class LoggingCallback(TrainerCallback):
+class LoggingCallback(InteractiveCallbackBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def on_log(self, args, state, control, logs=None, **kwargs):
-        pass
+    def on_log(self, args, state, control, **kwargs):
+        log = kwargs.get("logs", {})
+        log["global_step"] = state.global_step
+        self._server_upate_callback(log)
+        self._event_queue.put(
+            {
+                "status": "success",
+                "command": "log_update",
+                "args": json.dumps(log),
+                "uuid": str(uuid.uuid4()),
+                "time": time.time(),
+            }
+        )

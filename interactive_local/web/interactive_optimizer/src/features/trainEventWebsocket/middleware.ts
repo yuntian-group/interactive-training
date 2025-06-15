@@ -2,6 +2,7 @@ import type { Middleware } from "@reduxjs/toolkit";
 import { WebSocketActionTypes, type WebSocketActions } from "./types";
 import { createWebSocket } from "../../api/api";
 import { updateCommandStatus } from "../trainCommand/reducer";
+import { updateTrainLogData } from "../trainLogData/reducer";
 import type { TrainCommandData } from "../trainCommand/types";
 
 let socket: WebSocket | null = null;
@@ -28,7 +29,16 @@ export const websocketMiddleware: Middleware =
             status: msg.status || "received",
           };
 
-          store.dispatch(updateCommandStatus(msgTrainCommandData));
+          if (msg.command === "log_update") {
+            const logUpdateData = JSON.parse(msg.args) as Record<
+              string,
+              number
+            >;
+            store.dispatch(updateTrainLogData(logUpdateData));
+          } else {
+            store.dispatch(updateCommandStatus(msgTrainCommandData));
+          }
+
           console.log("Received WebSocket message:", msg);
         };
         socket.onclose = () => {

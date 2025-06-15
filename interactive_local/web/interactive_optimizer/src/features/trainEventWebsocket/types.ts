@@ -1,32 +1,32 @@
-export enum WebSocketActionTypes {
-  CONNECT = "WS_CONNECT",
-  DISCONNECT = "WS_DISCONNECT",
-  SEND = "WS_SEND",
-  RECEIVED = "WS_RECEIVED",
-  CLOSED = "WS_CLOSED",
-}
+export const WebSocketActionTypes = {
+  CONNECT: "WS_CONNECT",
+  DISCONNECT: "WS_DISCONNECT",
+  SEND: "WS_SEND",
+  RECEIVED: "WS_RECEIVED",
+  CLOSED: "WS_CLOSED",
+} as const;
 
 export interface WSConnectAction {
-  type: WebSocketActionTypes.CONNECT;
+  type: "WS_CONNECT";
   payload: { url: string };
 }
 
 export interface WSDisconnectAction {
-  type: WebSocketActionTypes.DISCONNECT;
+  type: "WS_DISCONNECT";
 }
 
 export interface WSSendAction {
-  type: WebSocketActionTypes.SEND;
+  type: "WS_SEND";
   payload: any;
 }
 
 export interface WSReceivedAction {
-  type: WebSocketActionTypes.RECEIVED;
+  type: "WS_RECEIVED";
   payload: any;
 }
 
 export interface WSCloseAction {
-  type: WebSocketActionTypes.CLOSED;
+  type: "WS_CLOSED";
 }
 
 export type WebSocketActions =

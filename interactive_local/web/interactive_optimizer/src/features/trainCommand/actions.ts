@@ -7,7 +7,7 @@ export const postTrainCommand = createAsyncThunk(
   async (command: TrainCommandData, { rejectWithValue }) => {
     try {
       const response = await postCommand(JSON.stringify(command));
-      return response;
+      return response.data;
     } catch (error) {
       console.error("Error executing train command:", error);
       return rejectWithValue("Failed to execute train command");

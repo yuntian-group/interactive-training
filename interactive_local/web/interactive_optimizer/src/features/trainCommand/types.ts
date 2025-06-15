@@ -1,9 +1,9 @@
 export interface TrainCommandData {
-  uuid: string;
   command: string;
   args: string;
   time: number;
-  status: "requeted" | "pending" | "running" | "success" | "failed";
+  uuid: string;
+  status: "requested" | "pending" | "running" | "success" | "failed";
 }
 
 export default interface trainCommandState {

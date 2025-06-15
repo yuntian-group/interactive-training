@@ -33,20 +33,11 @@ const trainCommandSlice = createSlice({
         state.error = null;
         state.response = null;
       })
-      .addCase(
-        postTrainCommand.fulfilled,
-        (state, action: PayloadAction<TrainCommandData>) => {
-          state.loading = false;
-          state.response = action.payload;
-          state.commandRecord[action.payload.uuid] = {
-            uuid: action.payload.uuid,
-            command: action.payload.command || "",
-            args: action.payload.args || "",
-            time: action.payload.time || Date.now(),
-            status: action.payload.status || "requested",
-          };
-        }
-      )
+      .addCase(postTrainCommand.fulfilled, (state, action) => {
+        state.loading = false;
+        state.response = action.payload;
+        console.log(state.response);
+      })
       .addCase(postTrainCommand.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error?.message || "Failed to execute command";

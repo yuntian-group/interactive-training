@@ -20,16 +20,21 @@ from trainer.constants import (
     Cmd,
 )
 
-from trainer.callbacks import InteractiveCallback, CheckpointCallback
+from trainer.callbacks import InteractiveCallback, CheckpointCallback, LoggingCallback
 
 
 class InteractiveServerState:
     checkpoints: List[dict] = []
-    commands_history: List[dict] = []
+    commands_dict: Dict[str, Cmd] = {}
     model_infos: Dict[str, str] = {}
     optimizer_states: Dict[str, float] = {}
     start_time: float = 0.0
     status: str = "init"
+
+
+class TrainLogs:
+    local_step: int = 0
+    log_values = {}
 
 
 class InteractiveServer:
@@ -62,7 +67,9 @@ class InteractiveServer:
         }
 
         self._train_state = InteractiveServerState()
+        self._logs = TrainLogs()
         self._train_state_lock = threading.Lock()
+        self._log_lock = threading.Lock()
         self._event_listeners: set[WebSocket] = set()
         self._loop: asyncio.AbstractEventLoop | None = None
         self._app_thread: threading.Thread | None = None
@@ -131,22 +138,42 @@ class InteractiveServer:
     def enqueue_message_by_type(self, command_type: str, cmd: Cmd):
         self.messages_queue_by_type[command_type].put(cmd)
 
+    def update_log_state(self, log: dict):
+        with self._log_lock:
+            if not isinstance(log, dict):
+                print(f"Invalid log format: {log}")
+                return
+            if "global_step" not in log:
+                print(f"Log does not contain 'global_step': {log}")
+            self._logs.local_step += 1
+            for k, v in log.items():
+                if k not in self._logs.log_values:
+                    self._logs.log_values[k] = []
+                self._logs.log_values[k].append(v)
+
     def update_server_state(self, event: dict):
 
-        if event["status"] != SUCCESS:
-            print(f"Received event with error status: {event}")
-            return
-
-        if event["command"] not in {
-            CHECKPOINT_INFO_UPDATE,
-            TRAIN_STATE_UPDATE,
-            UPDATE_OPTIMIZER,
-        }:
-            print("No need to update server")
-            return
+        def _update_command_history(event: dict):
+            cur_uuid = event.get("uuid", None)
+            if cur_uuid is None:
+                print("No UUID found in event, cannot update command history.")
+                return
+            self._train_state.commands_dict[cur_uuid] = Cmd(**event)
 
         with self._train_state_lock:
-            self._train_state.commands_history.append(event)
+            _update_command_history(event)
+
+            if event["status"] != SUCCESS:
+                print(f"Received event with error status: {event}")
+                return
+
+            if event["command"] not in {
+                CHECKPOINT_INFO_UPDATE,
+                TRAIN_STATE_UPDATE,
+                UPDATE_OPTIMIZER,
+            }:
+                print("No need to update server")
+                return
 
             if event["command"] == CHECKPOINT_INFO_UPDATE:
                 checkpoint_info_json = event.get("args", None)
@@ -161,7 +188,7 @@ class InteractiveServer:
 
                 self._train_state.checkpoints.append(checkpoint_info)
 
-            if event["command"] == TRAIN_STATE_UPDATE:
+            elif event["command"] == TRAIN_STATE_UPDATE:
 
                 train_state = json.loads(event.get("args", "{}"))
 
@@ -174,7 +201,7 @@ class InteractiveServer:
                 self._train_state.start_time = train_state.get("start_time", 0.0)
                 self._train_state.status = "running"
 
-            if event["command"] == UPDATE_OPTIMIZER:
+            elif event["command"] == UPDATE_OPTIMIZER:
                 optimizer_info = json.loads(event.get("args", "{}"))
                 self._train_state.optimizer_states.update(optimizer_info)
 
@@ -219,6 +246,18 @@ class InteractiveServer:
             with self._train_state_lock:
                 return self._train_state.checkpoints
 
+        @self.app.get("/api/get_logs/")
+        async def get_logs():
+            """
+            HTTP GET endpoint to retrieve the training logs.
+            """
+            with self._log_lock:
+                ret = self._logs.log_values.copy()
+                return {
+                    "local_step": self._logs.local_step,
+                    "log_values": ret
+                }
+
         @self.app.post("/api/command/")
         async def receive_command(cmd: Cmd):
             """
@@ -241,7 +280,7 @@ class InteractiveServer:
             # Enqueue the command into the appropriate queue
             self.enqueue_message_by_type(command_type, cmd)
 
-            if command_type == "load_checkpoint":
+            if command_type == LOAD_CHECKPOINT:
                 # Special handling for load_checkpoint command
                 self.enqueue_message_by_type(WRAPER_CONTROL_COMMAND_TYPE, cmd)
 
@@ -260,13 +299,9 @@ class InteractiveServer:
                 while True:
                     # Block in a thread for queue.get(); this won't block the event loop.
                     event = await loop.run_in_executor(None, self.events_queue.get)
-
-                    # self.update_server_state(event)
-
                     if event is None:
                         # Sentinel received → shutdown this WebSocket
                         break
-
                     # Broadcast `event` to all connected clients
                     to_remove = set()
                     text = json.dumps(event)
@@ -389,8 +424,14 @@ class InteractiveTrainingWrapper:
             event_queue=self._server.events_queue,
             server_state_update_callback=self._server.update_server_state,
         )
+
+        logging_callback = LoggingCallback(
+            event_queue=self._server.events_queue,
+            server_state_update_callback=self._server.update_log_state,
+        )
         self.trainer.add_callback(update_callback)
         self.trainer.add_callback(checkpoint_callback)
+        self.trainer.add_callback(logging_callback)
 
     def train(self, **kwargs):
         """

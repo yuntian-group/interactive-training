@@ -24,8 +24,7 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
 const SideControl: React.FC<Props> = ({
   className,
   initActiveItem,
-  onSideItemClick,
-  ...rest
+  onSideItemClick
 }: Props) => {
   const [activeItem, setActiveItem] = useState<string>(initActiveItem);
 

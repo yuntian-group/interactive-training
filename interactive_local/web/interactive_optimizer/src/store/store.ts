@@ -5,6 +5,7 @@ import trainCommandReducer from "../features/trainCommand/reducer";
 import trainInfoReducer from "../features/trainInfo/reducer";
 import optimizerStateReducer from "../features/optimizerState/reducer";
 import checkpointStateReducer from "../features/checkpointState/reducer";
+import TrainLogDataReducer from "../features/trainLogData/reducer";
 // Define the store
 export const store = configureStore({
   reducer: {
@@ -13,6 +14,7 @@ export const store = configureStore({
     trainInfo: trainInfoReducer,
     optimizerState: optimizerStateReducer,
     checkpointState: checkpointStateReducer,
+    trainLogData: TrainLogDataReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(websocketMiddleware),

@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel
 
 LOAD_CHECKPOINT = "load_checkpoint"
@@ -9,7 +10,7 @@ DO_EVALUATE = "do_evaluate"
 WRAPPER_RESUME_FOR_LOAD_CHECKPOINT = "wrapper_resume_load_checkpoint"
 TRAIN_STATE_UPDATE = "train_state_update"
 CHECKPOINT_INFO_UPDATE = "checkpoint_info_update"
-
+LOG_UPDATE = "log_update"
 
 UPDATE_COMMANDS = {UPDATE_OPTIMIZER, SAVE_CHECKPOINT, RESET_LAYER, DO_EVALUATE}
 LOAD_COMMANDS = {LOAD_CHECKPOINT}
@@ -52,7 +53,7 @@ EVENT_MESSAGE_TEMPLATE = {
 
 class Cmd(BaseModel):
     command: str
-    args: str = None
+    args: Optional[str] = None
     time: float
     uuid: str
     status: str

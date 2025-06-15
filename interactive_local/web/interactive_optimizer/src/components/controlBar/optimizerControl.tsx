@@ -1,21 +1,38 @@
 import { Divider } from "@mui/material";
 import clsx from "clsx";
+import { v4 as uuidv4 } from 'uuid';
 import React, { useState, useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "../../hooks/userTypedHooks";
 import { Box, Slider, Typography, TextField } from "@mui/material";
+import type { OptimizerData } from "../../features/optimizerState/type";
+import type { TrainCommandData } from "../../features/trainCommand/types";
+import { postTrainCommand } from "../../features/trainCommand/actions";
 
-interface OptimizerParams {
-  learningRate: number;
+
+const generateOptimizerUpdateTrainCommand = (
+  paramsUpdated: Record<string, OptimizerData>,
+): TrainCommandData => {
+  const command: TrainCommandData = {
+    command: "update_optimizer",
+    args: JSON.stringify(paramsUpdated),
+    uuid: uuidv4(),
+    time: Date.now(),
+    status: "requested",
+  };
+  console.log(command);
+  return command;
 }
+
 
 const OptimizerParameterControl: React.FC<{
   label: string;
   value: number;
-  step: number;
+  step?: number;
   min?: number;
   max?: number;
   onChange: (value: number) => void;
   className?: string;
-}> = ({ label, value, step, min = 0, max = 0.1, onChange, className }) => {
+}> = ({ label, value, step = 1e-7, min = 0, max = 0.1, onChange, className }) => {
   const [tempValue, setTempValue] = useState<string>(value.toExponential(3));
 
   useEffect(() => {
@@ -126,24 +143,27 @@ const OptimizerParameterControl: React.FC<{
 
 type Props = React.HTMLAttributes<HTMLDivElement>;
 
+
+
 const OptimizerControl: React.FC<Props> = ({ className }: Props) => {
-  const [params, setParams] = useState<OptimizerParams>({
-    learningRate: 1e-5, // Default learning rate
-  });
 
-  const handleInputChange = (
-    key: keyof OptimizerParams,
-    value: string | number
-  ) => {
-    setParams((prev) => ({
-      ...prev,
-      [key]: typeof value === "string" ? Number(value) : value,
-    }));
-  };
+  const optimizerStateServer: Record<string, OptimizerData> = useAppSelector(
+    (state) => state.optimizerState.optimizer_state
+  );
+  
+  const dispatch = useAppDispatch();
 
-  const handleCommit = () => {
-    console.log("Committing optimizer parameters:", params);
-    // Apply the parameters here
+  const [localOptimizerState, setLocalOptimizerState] = useState<Record<string, OptimizerData>>(optimizerStateServer);
+
+  const handleOptimizerUpdateApply = (newState: Record<string, OptimizerData>, oldState: Record<string, OptimizerData>) => {
+    let paramsUpdated: Record<string, OptimizerData> = {};
+    for (const key in newState) {
+      if (newState[key].value !== oldState[key].value) {
+        paramsUpdated[key] = newState[key];
+      }
+    }
+    const trainCommand = generateOptimizerUpdateTrainCommand(paramsUpdated);
+    dispatch(postTrainCommand(trainCommand));
   };
 
   return (
@@ -155,22 +175,33 @@ const OptimizerControl: React.FC<Props> = ({ className }: Props) => {
     >
       <h2 className="text-xl font-bold mb-4">Optimizer Control Panel</h2>
       <Divider />
-      <div className="gap-4 mb-6 mt-4">
-        {/* Learning Rate Slider */}
-        <OptimizerParameterControl
-          label="Learning Rate"
-          value={params.learningRate}
-          step={1e-8}
-          min={1e-8}
-          max={1e-3}
-          onChange={(value) => handleInputChange("learningRate", value)}
-        />
+
+      <div className="optimizer-parameter-list space-y-4 mt-4 mb-4">
+        {Object.entries(localOptimizerState).map(([key, param]) => (
+          <OptimizerParameterControl
+            key={key}
+            label={param.name}
+            value={param.value}
+            onChange={(value) => {
+              console.log(`Updating ${param.name} to ${value}`);
+              const updatedParams = {
+                ...localOptimizerState,
+                [key]: { ...param, value },
+              };
+              setLocalOptimizerState(updatedParams);
+            }}
+            className="w-full"
+          />
+        ))}
       </div>
 
       {/* Commit Button */}
       <button
-        onClick={handleCommit}
         className="w-full bg-gray-100 text-black py-2 px-6 font-semibold hover:bg-gray-200 transition-colors duration-200 border-gray-300"
+        onClick={() => {
+          console.log("Committing optimizer state:", localOptimizerState);
+          handleOptimizerUpdateApply(localOptimizerState, optimizerStateServer);
+        }}
       >
         Apply
       </button>
