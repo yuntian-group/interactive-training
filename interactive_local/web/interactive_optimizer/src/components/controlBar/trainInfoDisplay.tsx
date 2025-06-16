@@ -8,6 +8,8 @@ const TrainInfoDisplay: React.FC<{
   const loading = useAppSelector((state) => state.trainInfo.loading);
   const error = useAppSelector((state) => state.trainInfo.error);
 
+  console.log(trainInfo.start_time);
+
   return (
     <div className={clsx("train-info-display p-4", className)}>
       <h2 className="text-lg font-semibold mb-2">Training Information</h2>
@@ -19,7 +21,7 @@ const TrainInfoDisplay: React.FC<{
         <div className="space-y-2">
           <p>
             <strong>Start Time:</strong>{" "}
-            {new Date(trainInfo.start_time).toLocaleString()}
+            {new Date(trainInfo.start_time * 1000).toLocaleString()}
           </p>
           <p>
             <strong>Status:</strong> {trainInfo.status}

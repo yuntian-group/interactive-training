@@ -3,10 +3,10 @@ import time
 import uuid
 import json
 import queue
+import torch
 from typing import Callable
 from transformers import TrainerCallback
 from transformers.trainer_utils import get_last_checkpoint
-
 from trainer.constants import (
     LOAD_CHECKPOINT,
     SAVE_CHECKPOINT,
@@ -17,6 +17,8 @@ from trainer.constants import (
     EVENT_MESSAGE_TEMPLATE,
     CHECKPOINT_INFO_UPDATE,
     TRAIN_STATE_UPDATE,
+    CMD_SUCCESS,
+    CMD_FAILED,
     Cmd,
 )
 
@@ -45,15 +47,53 @@ class InteractiveCallback(InteractiveCallbackBase):
         super().__init__(**kwargs)
         self._cur_cmd_list = []
 
-    def _update_optimizer(self, cmd: Cmd):
+    def _update_optimizer(self, cmd: Cmd, optimizer, lr_scheduler):
         """Set the learning rate for the optimizer."""
+
+        def _update_lr(new_lr: float):
+            if lr_scheduler is not None:
+                print("update on lr scheduler", new_lr)
+                if hasattr(lr_scheduler, "base_lrs"):
+                    lr_scheduler.base_lrs = [new_lr] * len(lr_scheduler.base_lrs)
+                else:
+                    for group in optimizer.param_groups:
+                        if "lr" not in group:
+                            continue
+                        if isinstance(group["lr"], torch.Tensor):
+                            group["lr"].fill_(new_lr)
+                        else:
+                            group["lr"] = new_lr
+
+                for group in optimizer.param_groups:
+                    if "initial_lr" in group:
+                        if isinstance(group["initial_lr"], torch.Tensor):
+                            group["initial_lr"].fill_(new_lr)
+                        else:
+                            group["initial_lr"] = new_lr
+
+            elif optimizer is not None:
+                print("update on optimizer", new_lr)
+                for param_group in optimizer.param_groups:
+                    if "lr" not in param_group:
+                        continue
+
+                    if isinstance(param_group["lr"], torch.Tensor):
+                        param_group["lr"].fill_(new_lr)
+                    else:
+                        param_group["lr"] = new_lr
+            else:
+                print("No optimizer or lr_scheduler found to update learning rate.")
+                return False
+            return True
+
         update_body_json = cmd.args
         try:
             update_body = json.loads(update_body_json)
+            ret = True
             if "lr" in update_body:
-                new_lr = update_body["lr"]["value"]
-                print(f"Updating optimizer learning rate to {new_lr}")
-            return True
+                ret = ret and _update_lr(float(update_body["lr"]["value"]))
+
+            return ret
 
         except json.JSONDecodeError:
             print(f"Invalid JSON format in command args: {update_body_json}")
@@ -81,7 +121,7 @@ class InteractiveCallback(InteractiveCallbackBase):
             "checkpoints": [],
             "command_history": [],
             "uuid": str(uuid.uuid4()),
-            "time": time.time(),
+            "start_time": time.time(),
         }
         msg["args"] = json.dumps(all_info)
         print("initial info", all_info)
@@ -93,9 +133,11 @@ class InteractiveCallback(InteractiveCallbackBase):
             cmd: Cmd = self._cmd_queue.get()
             self._cur_cmd_list.append(cmd)
             if cmd.command == UPDATE_OPTIMIZER:
-                if self._update_optimizer(cmd):
+                if self._update_optimizer(
+                    cmd, kwargs.get("optimizer"), kwargs.get("lr_scheduler")
+                ):
                     msg = {
-                        "status": "success",
+                        "status": CMD_SUCCESS,
                         "command": UPDATE_OPTIMIZER,
                         "args": cmd.args,
                         "uuid": cmd.uuid,
@@ -103,7 +145,7 @@ class InteractiveCallback(InteractiveCallbackBase):
                     }
                 else:
                     msg = {
-                        "status": "failed",
+                        "status": CMD_SUCCESS,
                         "command": UPDATE_OPTIMIZER,
                         "args": cmd.args,
                         "uuid": cmd.uuid,
@@ -112,7 +154,6 @@ class InteractiveCallback(InteractiveCallbackBase):
 
                 self._server_upate_callback(msg)
                 self._event_queue.put(msg)
-
             elif cmd.command == STOP_TRAINING or cmd.command == LOAD_CHECKPOINT:
                 control.should_training_stop = True
                 print("Training stopped by command.")
@@ -135,12 +176,15 @@ class CheckpointCallback(InteractiveCallbackBase):
             if cmd.command == SAVE_CHECKPOINT:
                 control.should_save = True
                 self._is_cmd_save = True
-                print("Training stopped by command.")
+                print("CMD SAVE CKPT")
             else:
                 print(f"Unknown command for stop callback: {cmd.command}")
 
     def on_save(self, args, state, control, **kwargs):
         """Called when a checkpoint is saved."""
+
+        print("SAVE CHECKPOINT INITED.")
+
         last_ckpt_dir = get_last_checkpoint(args.output_dir)
         if self._is_cmd_save:
             self._is_cmd_save = False
@@ -148,6 +192,7 @@ class CheckpointCallback(InteractiveCallbackBase):
             control.should_save = False  # Reset to avoid multiple saves
             msg = EVENT_MESSAGE_TEMPLATE.copy()
             msg["command"] = SAVE_CHECKPOINT
+            msg["status"] = "success"
             self._event_queue.put(msg)
 
         msg_ckpt = EVENT_MESSAGE_TEMPLATE.copy()
@@ -155,6 +200,7 @@ class CheckpointCallback(InteractiveCallbackBase):
         msg_ckpt["args"] = json.dumps(
             {
                 "checkpoint_dir": last_ckpt_dir,
+                "global_step": state.global_step,
                 "time": os.path.getctime(last_ckpt_dir),
                 "uuid": str(uuid.uuid4()),
             }

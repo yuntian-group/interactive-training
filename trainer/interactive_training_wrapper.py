@@ -1,3 +1,4 @@
+import os
 import json
 import queue
 import asyncio
@@ -11,7 +12,6 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from trainer.constants import (
     COMMAND_TO_TYPE,
     WRAPER_CONTROL_COMMAND_TYPE,
-    SAVE_CHECKPOINT,
     UPDATE_OPTIMIZER,
     CHECKPOINT_INFO_UPDATE,
     TRAIN_STATE_UPDATE,
@@ -138,6 +138,17 @@ class InteractiveServer:
     def enqueue_message_by_type(self, command_type: str, cmd: Cmd):
         self.messages_queue_by_type[command_type].put(cmd)
 
+    def get_checkpoint_info(self, uuid: str) -> dict:
+        """
+        Retrieve checkpoint information by UUID.
+        Returns the checkpoint info if found, otherwise None.
+        """
+        with self._train_state_lock:
+            for ckpt in self._train_state.checkpoints:
+                if ckpt["uuid"] == uuid:
+                    return ckpt
+        return None
+
     def update_log_state(self, log: dict):
         with self._log_lock:
             if not isinstance(log, dict):
@@ -167,14 +178,6 @@ class InteractiveServer:
                 print(f"Received event with error status: {event}")
                 return
 
-            if event["command"] not in {
-                CHECKPOINT_INFO_UPDATE,
-                TRAIN_STATE_UPDATE,
-                UPDATE_OPTIMIZER,
-            }:
-                print("No need to update server")
-                return
-
             if event["command"] == CHECKPOINT_INFO_UPDATE:
                 checkpoint_info_json = event.get("args", None)
                 if checkpoint_info_json is None:
@@ -188,11 +191,29 @@ class InteractiveServer:
 
                 self._train_state.checkpoints.append(checkpoint_info)
 
+                new_ckpt_info = []
+                dedup = set()
+
+                for ckpt_info in self._train_state.checkpoints:
+                    if ckpt_info["uuid"] in dedup:
+                        continue
+                    dedup.add(ckpt_info["uuid"])
+                    if os.path.exists(ckpt_info["checkpoint_dir"]):
+                        new_ckpt_info.append(ckpt_info)
+
+                new_ckpt_info = list(
+                    sorted(new_ckpt_info, key=lambda x: x["global_step"])
+                )
+
+                print(new_ckpt_info)
+
+                self._train_state.checkpoints = new_ckpt_info
+
             elif event["command"] == TRAIN_STATE_UPDATE:
 
                 train_state = json.loads(event.get("args", "{}"))
 
-                print("update train state", train_state)
+                # print("update train state", train_state)
 
                 self._train_state.model_infos = train_state.get("model_infos", {})
                 self._train_state.optimizer_states = train_state.get(
@@ -203,7 +224,14 @@ class InteractiveServer:
 
             elif event["command"] == UPDATE_OPTIMIZER:
                 optimizer_info = json.loads(event.get("args", "{}"))
-                self._train_state.optimizer_states.update(optimizer_info)
+
+                unpacked_update = {
+                    k: v["value"]
+                    for k, v in optimizer_info.items()
+                    if isinstance(v, dict) and "value" in v
+                }
+
+                self._train_state.optimizer_states.update(unpacked_update)
 
     def _setup_routes(self):
 
@@ -253,10 +281,7 @@ class InteractiveServer:
             """
             with self._log_lock:
                 ret = self._logs.log_values.copy()
-                return {
-                    "local_step": self._logs.local_step,
-                    "log_values": ret
-                }
+                return {"local_step": self._logs.local_step, "log_values": ret}
 
         @self.app.post("/api/command/")
         async def receive_command(cmd: Cmd):
@@ -270,6 +295,7 @@ class InteractiveServer:
 
             command_type = COMMAND_TO_TYPE.get(cmd.command, "unknown")
             if command_type not in self.messages_queue_by_type:
+                print("Fail to get command to type")
                 return {"status": "error", "message": "Unknown command type"}
 
             # broadcast a response back to all WebSocket clients
@@ -277,12 +303,13 @@ class InteractiveServer:
             response_event["status"] = "pending"
             self.enqueue_event(response_event)
 
+            if cmd.command == LOAD_CHECKPOINT:
+                # Special handling for load_checkpoint command
+                print("ADD TO WRAPER_CONTROL_COMMAND_TYPE")
+                self.enqueue_message_by_type(WRAPER_CONTROL_COMMAND_TYPE, cmd)
+
             # Enqueue the command into the appropriate queue
             self.enqueue_message_by_type(command_type, cmd)
-
-            if command_type == LOAD_CHECKPOINT:
-                # Special handling for load_checkpoint command
-                self.enqueue_message_by_type(WRAPER_CONTROL_COMMAND_TYPE, cmd)
 
             return {"status": "success"}
 
@@ -420,7 +447,7 @@ class InteractiveTrainingWrapper:
             server_state_update_callback=self._server.update_server_state,
         )
         checkpoint_callback = CheckpointCallback(
-            cmd_queue=self._server.messages_queue_by_type["wrapper_control"],
+            cmd_queue=self._server.messages_queue_by_type["save"],
             event_queue=self._server.events_queue,
             server_state_update_callback=self._server.update_server_state,
         )
@@ -445,8 +472,11 @@ class InteractiveTrainingWrapper:
         while True:
             self.trainer.train(**kwargs)
 
+            print("Train exited ... waiting for commands")
+
             # Check if we have a load_checkpoint command
             if self._wrapper_control_queue.empty():
+                print("Empty wrapper control queue, waiting for commands...")
                 break
 
             is_load = False
@@ -457,12 +487,21 @@ class InteractiveTrainingWrapper:
                     self._load_message = cmd
                     print(f"Received load_checkpoint command: {cmd}")
                     is_load = True
-                    load_config = cmd.args
+                    load_config = json.loads(cmd.args)
 
             if is_load:
                 self._load_message = cmd
                 print(f"Received load_checkpoint command: {cmd}")
                 print(f"load config: {load_config}")
-                pass
+
+                ckpt_info = self._server.get_checkpoint_info(load_config["uuid"])
+                if ckpt_info is None:
+                    print(f"Checkpoint with UUID {load_config['uuid']} not found.")
+                    break
+
+                kwargs["resume_from_checkpoint"] = ckpt_info["checkpoint_dir"]
+
+            else:
+                break
 
         self._server.stop()

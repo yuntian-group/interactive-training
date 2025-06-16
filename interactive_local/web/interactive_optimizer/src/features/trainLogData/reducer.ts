@@ -12,16 +12,14 @@ const trainLogDataSlice = createSlice({
   name: "trainLogData",
   initialState,
   reducers: {
-    updateTrainLogData: (
-      state,
-      action: PayloadAction<Record<string, number>>
-    ) => {
+    updateTrainLogData: (state, action: PayloadAction<Record<string, any>>) => {
       const log_data = action.payload;
+      console.log("Received train log data:", log_data);
       if (!log_data) {
         return;
       }
       state.local_step += 1;
-      if (log_data.global_step !== undefined) {
+      if (log_data.hasOwnProperty("global_step")) {
         state.steps.push(log_data.global_step);
       } else {
         state.steps.push(state.local_step);
@@ -45,7 +43,11 @@ const trainLogDataSlice = createSlice({
         const data = action.payload;
         state.train_log_values = data.train_log_values;
         state.local_step = data.local_step;
-        state.steps = data.steps;
+        if (data.train_log_values.hasOwnProperty("global_step")) {
+          state.steps = data.train_log_values.global_step;
+        } else {
+          state.steps = [];
+        }
       }
     );
     builder.addCase(getTrainLogDataFromServer.rejected, (state, action) => {
@@ -55,10 +57,7 @@ const trainLogDataSlice = createSlice({
       state.train_log_values = {};
       state.local_step = 0;
     });
-    builder.addCase(getTrainLogDataFromServer.pending, (state) => {
-      // Optionally, you can handle the pending state if needed
-      console.log("Fetching train log data...");
-    });
+    builder.addCase(getTrainLogDataFromServer.pending, () => {});
   },
 });
 

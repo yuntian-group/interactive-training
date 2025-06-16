@@ -4,6 +4,7 @@ import { createWebSocket } from "../../api/api";
 import { updateCommandStatus } from "../trainCommand/reducer";
 import { updateTrainLogData } from "../trainLogData/reducer";
 import type { TrainCommandData } from "../trainCommand/types";
+import { getCheckpointStateFromServer } from "../checkpointState/action";
 
 let socket: WebSocket | null = null;
 
@@ -37,6 +38,13 @@ export const websocketMiddleware: Middleware =
             store.dispatch(updateTrainLogData(logUpdateData));
           } else {
             store.dispatch(updateCommandStatus(msgTrainCommandData));
+
+            if (msg.status === "success") {
+              switch (msg.command) {
+                case "checkpoint_info_update":
+                  store.dispatch(getCheckpointStateFromServer() as any);
+              }
+            }
           }
 
           console.log("Received WebSocket message:", msg);
