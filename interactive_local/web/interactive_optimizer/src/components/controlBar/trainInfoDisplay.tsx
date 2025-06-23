@@ -11,12 +11,14 @@ const TrainInfoDisplay: React.FC<{
   console.log(trainInfo.start_time);
 
   return (
-    <div className={clsx("train-info-display p-4", className)}>
-      <h2 className="text-lg font-semibold mb-2">Training Information</h2>
+    <div className={clsx("train-info-display", className)}>
+      <h4 className="flex-shrink-0 flex items-center justify-start text-left text-lg font-semibold p-2 bg-gray-200">
+        Training Information
+      </h4>
       {loading ? (
-        <p>Loading...</p>
+        <p className="p-4 text-sm text-gray-500">Loading...</p>
       ) : error ? (
-        <p className="text-red-500">{error}</p>
+        <p className="p-4 text-sm text-gray-500">{"Fail to load train information: "+ error}</p>
       ) : (
         <div className="space-y-2">
           <p>

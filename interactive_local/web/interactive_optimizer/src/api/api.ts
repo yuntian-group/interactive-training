@@ -36,6 +36,15 @@ export const getCheckpointInfo = async () => {
   }
 };
 
+export const getModelInfo = async () => {
+  try {
+    const response = await api.get("/api/get_model_info/");
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const getTrainLogData = async () => {
   try {
     const response = await api.get("/api/get_logs/");

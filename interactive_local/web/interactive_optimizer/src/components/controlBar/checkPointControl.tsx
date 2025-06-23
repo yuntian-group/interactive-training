@@ -11,6 +11,7 @@ const SingleCheckpointDisplay: React.FC<{
 }> = ({ checkpoint, handleLoadCheckpoint }) => {
   return (
     <div className="checkpoint-display p-2 border rounded-none bg-gray-50 flex-shrink-0">
+
       <h3 className="font-semibold text-sm">{checkpoint.checkpoint_dir}</h3>
       <p className="text-xs text-gray-600">
         Created at: {new Date(checkpoint.time * 1000).toLocaleString()}
@@ -68,10 +69,13 @@ const CheckpointControl: React.FC<{
 
   return (
     <div
-      className={clsx("checkpoint-control p-2 h-full flex flex-col", className)}
+      className={clsx("checkpoint-control h-full flex flex-col", className)}
     >
+                  <h4 className="flex-shrink-0 flex items-center justify-start text-left text-lg font-semibold p-2 bg-gray-200">
+        Checkpoint Management
+      </h4>
       {/* Save Checkpoint Panel */}
-      <div className="save-checkpoint p-3 mb-2 border bg-gradient-to-r from-gray-50 to-gray-100 shadow-sm h-20 flex-shrink-0 justify-center items-center flex flex-col">
+      <div className="save-checkpoint p-3 mb-2  bg-gradient-to-r from-gray-50 to-gray-100 shadow-sm h-20 flex-shrink-0 justify-center items-center flex flex-col">
         <button
           onClick={() => {
             handleSaveCurrentState();
@@ -83,9 +87,7 @@ const CheckpointControl: React.FC<{
       </div>
 
       {/* Current Checkpoint List */}
-      <div className="checkpoint-list flex flex-col flex-1 min-h-0">
-        {/* Divider */}
-        <hr className="my-2 border-gray-200 h-1 flex-shrink-0" />
+      <div className="checkpoint-list flex flex-col flex-1 min-h-0 p-4">
         <h2 className="text-base font-semibold mb-1 h-6 flex-shrink-0">
           Current Checkpoint
         </h2>

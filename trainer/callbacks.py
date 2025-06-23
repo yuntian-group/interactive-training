@@ -4,7 +4,8 @@ import uuid
 import json
 import queue
 import torch
-from typing import Callable
+from collections import deque
+from typing import Callable, List
 from transformers import TrainerCallback
 from transformers.trainer_utils import get_last_checkpoint
 from trainer.constants import (
@@ -46,6 +47,78 @@ class InteractiveCallback(InteractiveCallbackBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._cur_cmd_list = []
+
+    def _parse_model_tree(self, module_names: List[str]):
+        """Parse a list of module names into a tree structure."""
+        tree = {}
+        parent = {}
+        module_names_split = list(
+            sorted([name.split(".") for name in module_names], key=lambda x: len(x))
+        )
+
+        # build adjacency list
+        for name_parts in module_names_split:
+            cur_name = ".".join(name_parts)
+            if len(name_parts) == 0:
+                continue
+
+            tree[cur_name] = []
+            if len(name_parts) > 1:
+                parent_name = ".".join(name_parts[:-1])
+                parent_children_list = tree[parent_name]
+                parent_children_list.append(cur_name)
+                parent[cur_name] = parent_name
+
+        roots_list = []
+        for name in module_names:
+            if name not in parent:
+                roots_list.append(name)
+
+        root_tree_node = {
+            "name": None,
+            "children": [],
+        }
+
+        # Determine the root node name
+        # If there are multiple roots, we create a common root node
+        # If there is only one root, we use that as the root node name
+        # If there are no roots, we set the root node name to None
+
+        st_name = None
+
+        if len(roots_list) > 1:
+            root_tree_node["name"] = "Model"
+            tree[root_tree_node["name"]] = []
+            for root_name in roots_list:
+                parent[root_name] = root_tree_node["name"]
+                tree[root_tree_node["name"]].append(root_name)
+            st_name = root_tree_node["name"]
+        elif len(roots_list) == 1:
+            st_name = roots_list[0]
+            root_tree_node["name"] = st_name
+
+        # build the tree structure
+        # starting from the root node
+        # and traversing the tree using BFS
+
+        if st_name is not None:
+            q = deque()
+            q.append(root_tree_node)
+            while len(q) > 0:
+                cur_node = q.popleft()
+                cur_name = cur_node["name"]
+
+                children_name = tree.get(cur_name, [])
+                for child_name in children_name:
+                    child_node = {
+                        "name": child_name,
+                        "children": [],
+                    }
+                    cur_node["children"].append(child_node)
+                    q.append(child_node)
+                # print(cur_name, cur_node["children"])
+
+        return root_tree_node
 
     def _update_optimizer(self, cmd: Cmd, optimizer, lr_scheduler):
         """Set the learning rate for the optimizer."""
@@ -109,6 +182,8 @@ class InteractiveCallback(InteractiveCallbackBase):
             else []
         )
 
+        model_info_tree = self._parse_model_tree(model_info)
+
         optimizer_state = {}
 
         lr_scheduler = kwargs.get("lr_scheduler", None)
@@ -116,7 +191,7 @@ class InteractiveCallback(InteractiveCallbackBase):
             optimizer_state["lr"] = lr_scheduler.base_lrs[0]
 
         all_info = {
-            "model_infos": model_info,
+            "model_infos": model_info_tree,
             "optimizer_states": optimizer_state,
             "checkpoints": [],
             "command_history": [],

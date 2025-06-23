@@ -1,6 +1,6 @@
 import { Divider } from "@mui/material";
 import clsx from "clsx";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 import React, { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../../hooks/userTypedHooks";
 import { Box, Slider, Typography, TextField } from "@mui/material";
@@ -8,9 +8,8 @@ import type { OptimizerData } from "../../features/optimizerState/type";
 import type { TrainCommandData } from "../../features/trainCommand/types";
 import { postTrainCommand } from "../../features/trainCommand/actions";
 
-
 const generateOptimizerUpdateTrainCommand = (
-  paramsUpdated: Record<string, OptimizerData>,
+  paramsUpdated: Record<string, OptimizerData>
 ): TrainCommandData => {
   const command: TrainCommandData = {
     command: "update_optimizer",
@@ -21,8 +20,7 @@ const generateOptimizerUpdateTrainCommand = (
   };
   console.log(command);
   return command;
-}
-
+};
 
 const OptimizerParameterControl: React.FC<{
   label: string;
@@ -32,7 +30,15 @@ const OptimizerParameterControl: React.FC<{
   max?: number;
   onChange: (value: number) => void;
   className?: string;
-}> = ({ label, value, step = 1e-7, min = 0, max = 0.1, onChange, className }) => {
+}> = ({
+  label,
+  value,
+  step = 1e-7,
+  min = 0,
+  max = 0.1,
+  onChange,
+  className,
+}) => {
   const [tempValue, setTempValue] = useState<string>(value.toExponential(3));
 
   useEffect(() => {
@@ -143,19 +149,26 @@ const OptimizerParameterControl: React.FC<{
 
 type Props = React.HTMLAttributes<HTMLDivElement>;
 
-
-
 const OptimizerControl: React.FC<Props> = ({ className }: Props) => {
-
   const optimizerStateServer: Record<string, OptimizerData> = useAppSelector(
     (state) => state.optimizerState.optimizer_state
   );
-  
+
+  const trainStatus = useAppSelector(
+    (state) => state.trainInfo.trainInfo.status
+  );
+
+  const isRunning = trainStatus === "running";
+
   const dispatch = useAppDispatch();
 
-  const [localOptimizerState, setLocalOptimizerState] = useState<Record<string, OptimizerData>>(optimizerStateServer);
+  const [localOptimizerState, setLocalOptimizerState] =
+    useState<Record<string, OptimizerData>>(optimizerStateServer);
 
-  const handleOptimizerUpdateApply = (newState: Record<string, OptimizerData>, oldState: Record<string, OptimizerData>) => {
+  const handleOptimizerUpdateApply = (
+    newState: Record<string, OptimizerData>,
+    oldState: Record<string, OptimizerData>
+  ) => {
     let paramsUpdated: Record<string, OptimizerData> = {};
     for (const key in newState) {
       if (newState[key].value !== oldState[key].value) {
@@ -166,45 +179,59 @@ const OptimizerControl: React.FC<Props> = ({ className }: Props) => {
     dispatch(postTrainCommand(trainCommand));
   };
 
-  return (
-    <div
-      className={clsx(
-        "optimizer-control bg-white text-back p-4 border border-gray-300",
-        className
-      )}
-    >
-      <h2 className="text-xl font-bold mb-4">Optimizer Control Panel</h2>
-      <Divider />
 
-      <div className="optimizer-parameter-list space-y-4 mt-4 mb-4">
-        {Object.entries(localOptimizerState).map(([key, param]) => (
-          <OptimizerParameterControl
-            key={key}
-            label={param.name}
-            value={param.value}
-            onChange={(value) => {
-              console.log(`Updating ${param.name} to ${value}`);
-              const updatedParams = {
-                ...localOptimizerState,
-                [key]: { ...param, value },
-              };
-              setLocalOptimizerState(updatedParams);
-            }}
-            className="w-full"
-          />
-        ))}
+  const displayControl = () => {
+    return (
+      <div className="optimizer-control-wrapper flex-1 overflow-auto p-4 m-4 flex-grow">
+        <div className="optimizer-parameter-list space-y-4 mt-4 mb-4">
+          {Object.entries(localOptimizerState).map(([key, param]) => (
+            <OptimizerParameterControl
+              key={key}
+              label={param.name}
+              value={param.value}
+              onChange={(value) => {
+                console.log(`Updating ${param.name} to ${value}`);
+                const updatedParams = {
+                  ...localOptimizerState,
+                  [key]: { ...param, value },
+                };
+                setLocalOptimizerState(updatedParams);
+              }}
+              className="w-full"
+            />
+          ))}
+        </div>
+
+        {/* Commit Button */}
+        <button
+          className="w-full bg-gray-100 text-black py-2 px-6 font-semibold hover:bg-gray-200 transition-colors duration-200 border-gray-300"
+          onClick={() => {
+            console.log("Committing optimizer state:", localOptimizerState);
+            handleOptimizerUpdateApply(
+              localOptimizerState,
+              optimizerStateServer
+            );
+          }}
+        >
+          Apply
+        </button>
       </div>
+    )
+  }
 
-      {/* Commit Button */}
-      <button
-        className="w-full bg-gray-100 text-black py-2 px-6 font-semibold hover:bg-gray-200 transition-colors duration-200 border-gray-300"
-        onClick={() => {
-          console.log("Committing optimizer state:", localOptimizerState);
-          handleOptimizerUpdateApply(localOptimizerState, optimizerStateServer);
-        }}
-      >
-        Apply
-      </button>
+  return (
+    <div className={clsx("optimizer-control flex flex-col h-full", className)}>
+      <h4 className="flex-shrink-0 flex items-center justify-start text-left text-lg font-semibold p-2 bg-gray-200">
+        Optimizer Control Panel
+      </h4>
+      {
+        isRunning ? (
+          displayControl()
+        ) : (
+            <p className="p-4 text-sm text-gray-500">Optimizer control is disabled while training is running.</p>
+        )
+      }
+      
     </div>
   );
 };

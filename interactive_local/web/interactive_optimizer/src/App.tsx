@@ -6,6 +6,7 @@ import { getOptimizerStateFromServer } from "./features/optimizerState/action";
 import { getCheckpointStateFromServer } from "./features/checkpointState/action";
 import { getTrainLogDataFromServer } from "./features/trainLogData/action";
 import { getTrainInfoForInitializaiton } from "./features/trainInfo/actions";
+import {getModelInfoFromServer} from "./features/modelInfo/action";
 import { connectWebSocket, disconnectWebSocket } from "./features/trainEventWebsocket/actions";
 
 import "./App.css";
@@ -25,6 +26,7 @@ function App() {
   useEffect(() => {
     // Trigger only once when the training starts
     if (trainInfoStatus === "running") {
+      dispatch(getModelInfoFromServer());
       dispatch(getOptimizerStateFromServer());
       dispatch(getCheckpointStateFromServer());
       dispatch(getTrainLogDataFromServer());

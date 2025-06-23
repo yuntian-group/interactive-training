@@ -26,7 +26,7 @@ from trainer.callbacks import InteractiveCallback, CheckpointCallback, LoggingCa
 class InteractiveServerState:
     checkpoints: List[dict] = []
     commands_dict: Dict[str, Cmd] = {}
-    model_infos: Dict[str, str] = {}
+    model_infos: Dict[str, any] = {}
     optimizer_states: Dict[str, float] = {}
     start_time: float = 0.0
     status: str = "init"

@@ -26,7 +26,7 @@ const MetricsPanel: React.FC<Props> = ({ className }: Props) => {
                 names.map((name) => (
                     <div
                         key={name}
-                        className="h-[33vh] max-h-[33vh] w-1/2 lg:w-1/2 xl:w-1/3 flex-shrink-0 p-1"
+                        className="h-[33vh] max-h-[33vh] w-full md:w-1/2 lg:w-1/2 xl:w-1/3 flex-shrink-0 p-1"
                     >
                         <MetricsDisplayChart
                             xAxisData={trainSteps}
