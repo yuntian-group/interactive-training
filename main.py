@@ -1,8 +1,6 @@
 import os
 import datasets
-from torch.utils.data import Dataset
-from datasets import load_dataset
-from trainer.interactive_training_wrapper import InteractiveTrainingWrapper
+from trainer import make_interactive
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
@@ -35,7 +33,7 @@ def main():
         logging_strategy="steps",
         do_eval=False,
         logging_steps=100,
-        learning_rate=1.1415e-5,
+        learning_rate=2.1415e-5,
         per_device_train_batch_size=8,
         per_device_eval_batch_size=8,
         num_train_epochs=300,
@@ -49,7 +47,9 @@ def main():
         label2id=label2id,
     )
 
-    trainer = Trainer(
+    trainer_cls = make_interactive(Trainer)
+
+    trainer = trainer_cls(
         model=model,
         args=args,
         train_dataset=tokenized["train"],
@@ -57,9 +57,7 @@ def main():
         tokenizer=tokenizer,
         data_collator=DataCollatorWithPadding(tokenizer),
     )
-
-    interactive_trainer = InteractiveTrainingWrapper(trainer)
-    interactive_trainer.train()
+    trainer.train()
 
 
 if __name__ == "__main__":
