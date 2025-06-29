@@ -1,67 +1,64 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { getTrainLogDataFromServer } from "./action";
+import type { BranchInfo } from "./type";
 import type TrainLogData from "./type";
 
+const MAIN_BRANCH = "main";
+
 const initialState: TrainLogData = {
-  steps: [],
-  train_log_values: {},
-  local_step: 0,
+  // Initial state for train log data
+  localDataVersion: 0, // Version of the data structure
+  currentBranch: MAIN_BRANCH, // Current branch name
+  branchInfo: {}, // Information about each branch
+  branchTree: { main: [] }, // Tree structure of branches
+  displayBranch: [], // Branch to display in the UI
 };
 
 const trainLogDataSlice = createSlice({
   name: "trainLogData",
   initialState,
   reducers: {
-    updateTrainLogData: (state, action: PayloadAction<Record<string, any>>) => {
-      const log_data = action.payload;
-      console.log("Received train log data:", log_data);
-      if (!log_data) {
-        return;
+    fork: (state, action: PayloadAction<BranchInfo>) => {
+      const branchInfo = action.payload;
+      const branchId = branchInfo.id;
+      // Add the new branch to the branch info
+      state.branchInfo[branchId] = branchInfo;
+      // Add the new branch to the branch tree
+      if (!state.branchTree[branchId]) {
+        state.branchTree[branchId] = [];
       }
-      state.local_step += 1;
-      if (log_data.hasOwnProperty("global_step")) {
-        state.steps.push(log_data.global_step);
-      } else {
-        state.steps.push(state.local_step);
-      }
-
-      for (const [key, value] of Object.entries(log_data)) {
-        if (state.train_log_values.hasOwnProperty(key) === false) {
-          state.train_log_values[key] = [];
-        }
-        state.train_log_values[key].push(value);
-      }
-      return state;
+      state.branchTree[state.currentBranch].push(branchId);
+      state.currentBranch = branchId; // Switch to the new branch
+      state.localDataVersion += 1; // Increment the local data version
+    },
+    bumpLocalDataVersion: (state) => {
+      console.log("Bumping local data version");
+      state.localDataVersion += 1; // Increment the local data version
     },
     resetTrainLogData: () => initialState,
   },
   extraReducers: (builder) => {
-    // You can add extra reducers here if needed
     builder.addCase(
       getTrainLogDataFromServer.fulfilled,
       (state, action: PayloadAction<TrainLogData>) => {
         const data = action.payload;
-        state.train_log_values = data.train_log_values;
-        state.local_step = data.local_step;
-        if (data.train_log_values.hasOwnProperty("global_step")) {
-          state.steps = data.train_log_values.global_step;
-        } else {
-          state.steps = [];
-        }
+        console.log("Received train log data:", data);
+        state.branchTree = data.branchTree;
+        state.branchInfo = data.branchInfo;
+        state.currentBranch = data.currentBranch;
+        state.displayBranch = data.displayBranch;
+        state.localDataVersion += 1; // Increment the data version
       }
     );
     builder.addCase(getTrainLogDataFromServer.rejected, (state, action) => {
       console.error("Failed to fetch train log data:", action.payload);
+      // TODO
       // Optionally, you can reset the state or handle the error as needed
-      state.steps = [];
-      state.train_log_values = {};
-      state.local_step = 0;
     });
     builder.addCase(getTrainLogDataFromServer.pending, () => {});
   },
 });
 
-export const { updateTrainLogData, resetTrainLogData } =
-  trainLogDataSlice.actions;
+export const { resetTrainLogData } = trainLogDataSlice.actions;
 
 export default trainLogDataSlice.reducer;

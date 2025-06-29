@@ -41,6 +41,9 @@ const CheckpointControl: React.FC<{
   className?: string;
 }> = ({ className }) => {
   const checkpointState = useAppSelector((state) => state.checkpointState);
+  const isTraining = useAppSelector(
+    (state) => state.trainInfo.trainInfo.status === "running"
+  );
   const dispatch = useAppDispatch();
 
   const handleSaveCurrentState = () => {
@@ -80,7 +83,8 @@ const CheckpointControl: React.FC<{
           onClick={() => {
             handleSaveCurrentState();
           }}
-          className="rounded-lg text-lg bg-green-500 hover:bg-green-600 text-white focus:outline-none focus:ring-2 focus:ring-green-300 transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center h-4/5 w-4/5 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!isTraining}
+          className="rounded-lg text-lg bg-green-500 hover:bg-green-600 disabled:bg-gray-400 disabled:hover:bg-gray-400 text-white focus:outline-none focus:ring-2 focus:ring-green-300 disabled:focus:ring-0 transition-all duration-200 shadow-sm disabled:shadow-none flex items-center justify-center h-4/5 w-4/5 font-medium disabled:cursor-not-allowed"
         >
           Save Current State
         </button>

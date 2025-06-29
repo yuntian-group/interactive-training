@@ -1,10 +1,13 @@
 import os
+import uuid
+import time
 import json
 import queue
 import asyncio
 import threading
 from typing import Dict, List
 from uvicorn import Config, Server
+from dataclasses import dataclass, field
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from trainer.constants import (
@@ -15,22 +18,53 @@ from trainer.constants import (
     TRAIN_STATE_UPDATE,
     LOAD_CHECKPOINT,
     SUCCESS,
+    MAIN_BRANCH_NAME,
     Cmd,
 )
 
 
+@dataclass
 class InteractiveServerState:
-    checkpoints: List[dict] = []
-    commands_dict: Dict[str, Cmd] = {}
-    model_infos: Dict[str, any] = {}
-    optimizer_states: Dict[str, float] = {}
+    checkpoints: List[dict] = field(default_factory=list)
+    commands_dict: Dict[str, Cmd] = field(default_factory=dict)
+    model_infos: Dict[str, any] = field(default_factory=dict)
+    optimizer_states: Dict[str, float] = field(default_factory=dict)
     start_time: float = 0.0
     status: str = "init"
 
 
-class TrainLogs:
+@dataclass
+class SingleMetricsPoint:
+    local_step: int
+    wall_time: float
+    branch_id: str
+    metrics: Dict[str, float]
+
+
+@dataclass
+class BranchInfo:
+    id: str
+    wall_time: float
+    parent: str | None = None
+
+
+@dataclass
+class TrainLogData:
     local_step: int = 0
-    log_values = {}
+    branched_logs: Dict[str, List[SingleMetricsPoint]] = field(
+        default_factory=lambda: {MAIN_BRANCH_NAME: []}
+    )
+    current_branch: str = MAIN_BRANCH_NAME
+    branch_info: Dict[str, BranchInfo] = field(
+        default_factory=lambda: {
+            MAIN_BRANCH_NAME: BranchInfo(
+                id=MAIN_BRANCH_NAME, wall_time=time.time(), parent=None
+            )
+        }
+    )
+    branch_tree: Dict[str, List[str]] = field(
+        default_factory=lambda: {MAIN_BRANCH_NAME: []}
+    )
 
 
 class InteractiveServer:
@@ -63,7 +97,7 @@ class InteractiveServer:
         }
 
         self._train_state = InteractiveServerState()
-        self._logs = TrainLogs()
+        self._logs = TrainLogData()
         self._train_state_lock = threading.Lock()
         self._log_lock = threading.Lock()
         self._event_listeners: set[WebSocket] = set()
@@ -153,10 +187,72 @@ class InteractiveServer:
             if "global_step" not in log:
                 print(f"Log does not contain 'global_step': {log}")
             self._logs.local_step += 1
-            for k, v in log.items():
-                if k not in self._logs.log_values:
-                    self._logs.log_values[k] = []
-                self._logs.log_values[k].append(v)
+            # for k, v in log.items():
+            #     if k not in self._logs.log_values:
+            #         self._logs.log_values[k] = []
+            #     self._logs.log_values[k].append(v)
+
+            # Update the branched logs
+            if self._logs.current_branch not in self._logs.branched_logs:
+                self._logs.branched_logs[self._logs.current_branch] = []
+            metrics_point = SingleMetricsPoint(
+                local_step=self._logs.local_step,
+                wall_time=time.time(),
+                branch_id=self._logs.current_branch,
+                metrics={k: v for k, v in log.items()},
+            )
+            self._logs.branched_logs[self._logs.current_branch].append(metrics_point)
+            return {
+                "status": "success",
+                "command": "log_update",
+                "args": json.dumps(
+                    {
+                        "local_step": metrics_point.local_step,
+                        "wall_time": metrics_point.wall_time,
+                        "branch_id": metrics_point.branch_id,
+                        "metrics": metrics_point.metrics,
+                    }
+                ),
+                "uuid": str(uuid.uuid4()),
+                "time": time.time(),
+            }
+
+    def get_current_branch(self) -> str:
+        """
+        Get the name of the current branch.
+        """
+        with self._log_lock:
+            return self._logs.current_branch
+
+    def fork_branch(self, parent: str | None = None) -> dict:
+        """
+        Fork the current branch of logs to a new branch.
+        If the branch already exists, it will not be overwritten.
+        """
+        with self._log_lock:
+            new_branch_name = f"branch_{len(self._logs.branched_logs)}"
+            if new_branch_name in self._logs.branched_logs:
+                print(f"Branch {new_branch_name} already exists, not forking.")
+                return
+            self._logs.branched_logs[new_branch_name] = []
+            self._logs.current_branch = new_branch_name
+
+            new_branch_info = BranchInfo(
+                id=new_branch_name,
+                wall_time=time.time(),
+                parent=self._logs.current_branch if parent is None else parent,
+            )
+
+            self._logs.branch_info[new_branch_name] = new_branch_info
+            if self._logs.current_branch not in self._logs.branch_tree:
+                self._logs.branch_tree[self._logs.current_branch] = []
+            self._logs.branch_tree[self._logs.current_branch].append(new_branch_name)
+            print(f"Forked new branch: {new_branch_name}")
+            return {
+                "id": new_branch_name,
+                "wall_time": new_branch_info.wall_time,
+                "parent": new_branch_info.parent,
+            }
 
     def update_server_state(self, event: dict):
 
@@ -206,10 +302,9 @@ class InteractiveServer:
                 self._train_state.checkpoints = new_ckpt_info
 
             elif event["command"] == TRAIN_STATE_UPDATE:
+                # only update train state when start running
 
                 train_state = json.loads(event.get("args", "{}"))
-
-                # print("update train state", train_state)
 
                 self._train_state.model_infos = train_state.get("model_infos", {})
                 self._train_state.optimizer_states = train_state.get(
@@ -228,6 +323,36 @@ class InteractiveServer:
                 }
 
                 self._train_state.optimizer_states.update(unpacked_update)
+
+    def _serialize_logs(self):
+        """
+        Serialize the logs to a JSON-compatible format.
+        """
+        serialized_logs = {
+            "local_step": self._logs.local_step,
+            "branched_logs": {
+                branch: [
+                    {
+                        "local_step": point.local_step,
+                        "wall_time": point.wall_time,
+                        "metrics": point.metrics,
+                    }
+                    for point in points
+                ]
+                for branch, points in self._logs.branched_logs.items()
+            },
+            "current_branch": self._logs.current_branch,
+            "branch_info": {
+                branch: {
+                    "id": info.id,
+                    "wall_time": info.wall_time,
+                    "parent": info.parent,
+                }
+                for branch, info in self._logs.branch_info.items()
+            },
+            "branch_tree": self._logs.branch_tree,
+        }
+        return serialized_logs
 
     def _setup_routes(self):
 
@@ -276,8 +401,8 @@ class InteractiveServer:
             HTTP GET endpoint to retrieve the training logs.
             """
             with self._log_lock:
-                ret = self._logs.log_values.copy()
-                return {"local_step": self._logs.local_step, "log_values": ret}
+                serialized_logs = self._serialize_logs()
+                return serialized_logs
 
         @self.app.post("/api/command/")
         async def receive_command(cmd: Cmd):

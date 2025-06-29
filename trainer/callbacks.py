@@ -30,6 +30,7 @@ class InteractiveCallbackBase(TrainerCallback):
         cmd_queue: queue.Queue = None,
         event_queue: queue.Queue = None,
         server_state_update_callback: Callable = None,
+        current_branch_id_callback: Callable = None,
     ):
         """
         Base class for interactive callbacks that handle commands and events.
@@ -40,7 +41,8 @@ class InteractiveCallbackBase(TrainerCallback):
         super().__init__()
         self._cmd_queue = cmd_queue
         self._event_queue = event_queue
-        self._server_upate_callback = server_state_update_callback
+        self._server_update_callback = server_state_update_callback
+        self._current_branch_id_callback = current_branch_id_callback
 
 
 class InteractiveCallback(InteractiveCallbackBase):
@@ -200,7 +202,7 @@ class InteractiveCallback(InteractiveCallbackBase):
         }
         msg["args"] = json.dumps(all_info)
         print("initial info", all_info)
-        self._server_upate_callback(msg)
+        self._server_update_callback(msg)
         self._event_queue.put(msg)
 
     def on_step_end(self, args, state, control, **kwargs):
@@ -227,7 +229,7 @@ class InteractiveCallback(InteractiveCallbackBase):
                         "time": cmd.time,
                     }
 
-                self._server_upate_callback(msg)
+                self._server_update_callback(msg)
                 self._event_queue.put(msg)
             elif cmd.command == STOP_TRAINING or cmd.command == LOAD_CHECKPOINT:
                 control.should_training_stop = True
@@ -251,7 +253,6 @@ class CheckpointCallback(InteractiveCallbackBase):
             if cmd.command == SAVE_CHECKPOINT:
                 control.should_save = True
                 self._is_cmd_save = True
-                print("CMD SAVE CKPT")
             else:
                 print(f"Unknown command for stop callback: {cmd.command}")
 
@@ -260,7 +261,9 @@ class CheckpointCallback(InteractiveCallbackBase):
 
         print("SAVE CHECKPOINT INITED.")
 
-        last_ckpt_dir = get_last_checkpoint(args.output_dir)
+        last_ckpt_dir = get_last_checkpoint(
+            os.path.join(args.output_dir, self._current_branch_id_callback())
+        )
         if self._is_cmd_save:
             self._is_cmd_save = False
 
@@ -272,15 +275,17 @@ class CheckpointCallback(InteractiveCallbackBase):
 
         msg_ckpt = EVENT_MESSAGE_TEMPLATE.copy()
         msg_ckpt["command"] = CHECKPOINT_INFO_UPDATE
+
         msg_ckpt["args"] = json.dumps(
             {
                 "checkpoint_dir": last_ckpt_dir,
                 "global_step": state.global_step,
                 "time": os.path.getctime(last_ckpt_dir),
                 "uuid": str(uuid.uuid4()),
+                "branch_id": self._current_branch_id_callback(),
             }
         )
-        self._server_upate_callback(msg_ckpt)
+        self._server_update_callback(msg_ckpt)
         self._event_queue.put(msg_ckpt)
 
 
@@ -291,13 +296,5 @@ class LoggingCallback(InteractiveCallbackBase):
     def on_log(self, args, state, control, **kwargs):
         log = kwargs.get("logs", {})
         log["global_step"] = state.global_step
-        self._server_upate_callback(log)
-        self._event_queue.put(
-            {
-                "status": "success",
-                "command": "log_update",
-                "args": json.dumps(log),
-                "uuid": str(uuid.uuid4()),
-                "time": time.time(),
-            }
-        )
+        event = self._server_update_callback(log)
+        self._event_queue.put(event)

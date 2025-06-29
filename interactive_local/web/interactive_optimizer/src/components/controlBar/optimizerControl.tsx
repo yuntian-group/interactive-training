@@ -168,7 +168,7 @@ const OptimizerControl: React.FC<Props> = ({ className }: Props) => {
     newState: Record<string, OptimizerData>,
     oldState: Record<string, OptimizerData>
   ) => {
-    let paramsUpdated: Record<string, OptimizerData> = {};
+    const paramsUpdated: Record<string, OptimizerData> = {};
     for (const key in newState) {
       if (newState[key].value !== oldState[key].value) {
         paramsUpdated[key] = newState[key];

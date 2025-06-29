@@ -1,6 +1,38 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { getTrainLogData } from "../../api/api";
+
 import type TrainLogData from "./type";
+import type { SingleMetricsPoint } from "./type";
+import { loadInitialSnapshot } from "./logBuffers";
+
+export const computeDisplayBranch = (
+  branchTree: Record<string, string[]>,
+  branchInfo: Record<string, { id: string; wall_time: number; parent: string }>,
+  currentBranch: string
+): string[] => {
+  const displayBranch: string[] = [currentBranch];
+  const currentBranchParent: string | null =
+    branchInfo[currentBranch]?.parent || null;
+
+  let tmpParent = currentBranchParent;
+
+  while (tmpParent && tmpParent !== "main") {
+    displayBranch.unshift(tmpParent);
+    tmpParent = branchInfo[tmpParent]?.parent || null;
+  }
+
+  const siblings = branchTree[currentBranch] || [];
+  for (const sibling of siblings) {
+    if (sibling !== currentBranch) {
+      displayBranch.push(sibling);
+    }
+  }
+
+  if (currentBranch !== "main") {
+    displayBranch.push("main");
+  }
+  return displayBranch;
+};
 
 export const getTrainLogDataFromServer = createAsyncThunk(
   "trainLogData/getTrainLogDataFromServer",
@@ -12,10 +44,25 @@ export const getTrainLogDataFromServer = createAsyncThunk(
       console.log("Received train log data:", data);
 
       const trainLogData: TrainLogData = {
-        steps: data.log_values.global_step,
-        train_log_values: data.log_values ? data.log_values : {},
-        local_step: data.local_step || 0,
+        branchTree: data.branch_tree || { main: [] }, // Tree structure of branches
+        branchInfo: data.branch_info || {}, // Information about each branch
+        currentBranch: data.current_branch || "main", // Current branch name
+        displayBranch: [],
+        localDataVersion: 0, // Version of the data structure
       };
+
+      // Compute the display branch based on the current branch and its parent
+      trainLogData.displayBranch = computeDisplayBranch(
+        trainLogData.branchTree,
+        trainLogData.branchInfo,
+        trainLogData.currentBranch
+      );
+
+      const initialBranchLogs =
+        data.branched_logs || ({} as Record<string, SingleMetricsPoint[]>);
+
+      console.log("Initial branch logs:", initialBranchLogs);
+      loadInitialSnapshot(initialBranchLogs);
       return trainLogData;
     } catch (error) {
       console.error("Error executing train command:", error);

@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
-import { useAppSelector } from "../../hooks/userTypedHooks";
+import { useAppSelector, useAppDispatch } from "../../hooks/userTypedHooks";
 import type { ModelDataNode } from "../../features/modelInfo/type";
 import { useMemo, useState } from "react";
 import TextField from "@mui/material/TextField";
@@ -29,14 +29,35 @@ const filterTree = (
   return null;
 };
 
-const displayTree = (node: ModelDataNode): React.ReactNode => (
-  <TreeItem key={node.name} itemId={node.name} label={node.name}>
-    {node.children?.map((child) => displayTree(child))}
+const displayTree = (node: ModelDataNode, dispatch: any): React.ReactNode => (
+  <TreeItem
+    key={node.name}
+    itemId={node.name}
+    label={
+      <div className="flex">
+        <span>{node.name}</span>
+      </div>
+    }
+    onClick={(e) => {
+      dispatch({
+        type: "bottomDisplayState/addAndSetActiveTab",
+        payload: "MODEL",
+      });
+
+      e.stopPropagation();
+      e.preventDefault();
+    }}
+  >
+    {node.children?.map((child) => displayTree(child, dispatch))}
   </TreeItem>
 );
 
 const TrainInfoDisplay: React.FC<{ className?: string }> = ({ className }) => {
+  const appDispatch = useAppDispatch();
+  
   const modelInfo = useAppSelector((state) => state.modelInfo.module_tree);
+
+
   const [filterText, setFilterText] = useState("");
 
   const filteredModelInfo = useMemo(() => {
@@ -126,7 +147,7 @@ const TrainInfoDisplay: React.FC<{ className?: string }> = ({ className }) => {
                   },
               }}
             >
-              {displayTree(filteredModelInfo)}
+              {displayTree(filteredModelInfo, appDispatch)}
             </SimpleTreeView>
           ) : (
             <p className="p-4 text-sm text-gray-500">

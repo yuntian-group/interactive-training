@@ -1,0 +1,24 @@
+{
+    "plugins": ["import"],
+    "rules": {
+      "import/order": [
+        "error",
+        {
+          "groups": [
+            "builtin",    // Node.js built-ins
+            "external",   // npm packages
+            "internal",   // Aliased or internal modules
+            ["parent", "sibling", "index"], // relative imports
+            "object",     // `import * as foo from '...'`
+            "type"        // Flow/TypeScript types
+          ],
+          "newlines-between": "always", // Add new lines between groups
+          "alphabetize": {
+            "order": "asc",
+            "caseInsensitive": true
+          }
+        }
+      ]
+    }
+  }
+  

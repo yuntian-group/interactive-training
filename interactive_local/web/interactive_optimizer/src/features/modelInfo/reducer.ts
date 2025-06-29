@@ -10,13 +10,18 @@ const initTree: ModelDataNode = {
 
 const initialState: ModelInfoState = {
   module_tree: initTree,
-  status: "idle", // Initial status of the model info fetch
+  status: "idle", // Initial status of the model info fetche
+  selected_layer: "", // Initially no layer is selected
 };
 
 const modelInfoStateSlice = createSlice({
   name: "modelInfoState",
   initialState,
-  reducers: {},
+  reducers: {
+    selectLayerReducer: (state, action: PayloadAction<string>) => {
+      state.selected_layer = action.payload; // Update the selected layer in the state
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(getModelInfoFromServer.pending, (state) => {

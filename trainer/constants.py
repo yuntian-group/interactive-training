@@ -43,6 +43,8 @@ CMD_COMPELTED = "completed"
 CMD_SUCCESS = "success"
 CMD_FAILED = "failed"
 
+MAIN_BRANCH_NAME = "main"
+
 
 EVENT_MESSAGE_TEMPLATE = {
     "status": SUCCESS,
