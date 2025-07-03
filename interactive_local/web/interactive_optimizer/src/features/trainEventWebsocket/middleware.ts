@@ -33,8 +33,13 @@ export const websocketMiddleware: Middleware =
             store.dispatch({
               type: "trainLogData/bumpLocalDataVersion",
             });
-          } else if (msg.command === "load_checkpoint") {
+          } else if (
+            msg.command === "load_checkpoint" &&
+            msg.status === "success"
+          ) {
             const branchInfo = JSON.parse(msg.args).branch_info as BranchInfo;
+            console.log("Forking branch with info raw:", branchInfo);
+
             store.dispatch({
               type: "trainLogData/fork",
               payload: branchInfo,

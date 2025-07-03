@@ -10,6 +10,10 @@ export const computeDisplayBranch = (
   branchInfo: Record<string, { id: string; wall_time: number; parent: string }>,
   currentBranch: string
 ): string[] => {
+  console.log("Computing display branch for:", currentBranch);
+  console.log("Branch tree:", branchTree);
+  console.log("Branch info:", branchInfo);
+
   const displayBranch: string[] = [currentBranch];
   const currentBranchParent: string | null =
     branchInfo[currentBranch]?.parent || null;
@@ -21,10 +25,21 @@ export const computeDisplayBranch = (
     tmpParent = branchInfo[tmpParent]?.parent || null;
   }
 
-  const siblings = branchTree[currentBranch] || [];
-  for (const sibling of siblings) {
-    if (sibling !== currentBranch) {
-      displayBranch.push(sibling);
+  // Add all siblings of the current branch
+
+  if (!currentBranchParent || !(currentBranchParent in branchTree)) {
+    console.warn(
+      `Current branch parent "${currentBranchParent}" not found in branch tree.`
+    );
+  } else {
+    const siblings = branchTree[currentBranchParent] || [];
+
+    console.log(`Siblings of current branch "${currentBranch}":`, siblings);
+
+    for (const sibling of siblings) {
+      if (sibling !== currentBranch) {
+        displayBranch.push(sibling);
+      }
     }
   }
 

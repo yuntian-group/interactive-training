@@ -1,6 +1,6 @@
 
 
-const LogDisplay: React.FC<{ className?: string }> = ({ className }) => {
+const LogDisplay: React.FC<{ className?: string }> = ({  }) => {
     return (
         <div >Log Display</div>
     )

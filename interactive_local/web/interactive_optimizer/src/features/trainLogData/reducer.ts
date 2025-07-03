@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import { getTrainLogDataFromServer } from "./action";
+import { computeDisplayBranch, getTrainLogDataFromServer } from "./action";
 import type { BranchInfo } from "./type";
 import type TrainLogData from "./type";
 
@@ -20,16 +20,35 @@ const trainLogDataSlice = createSlice({
   reducers: {
     fork: (state, action: PayloadAction<BranchInfo>) => {
       const branchInfo = action.payload;
+
+      console.log("Forking branch with info:", branchInfo, state.displayBranch);
+
       const branchId = branchInfo.id;
+      const parentBranch = branchInfo.parent || state.currentBranch;
+
       // Add the new branch to the branch info
       state.branchInfo[branchId] = branchInfo;
       // Add the new branch to the branch tree
       if (!state.branchTree[branchId]) {
         state.branchTree[branchId] = [];
       }
-      state.branchTree[state.currentBranch].push(branchId);
+
+      if (!state.branchTree[parentBranch]) {
+        state.branchTree[parentBranch] = [];
+      }
+
+      state.branchTree[parentBranch].push(branchId);
       state.currentBranch = branchId; // Switch to the new branch
-      state.localDataVersion += 1; // Increment the local data version
+
+      console.log("Forked branch:", branchId, "with parent:", parentBranch);
+
+      state.displayBranch = computeDisplayBranch(
+        state.branchTree,
+        state.branchInfo,
+        branchId
+      ); // Update the display branch
+
+      console.log("Updated display branch:", state.displayBranch);
     },
     bumpLocalDataVersion: (state) => {
       console.log("Bumping local data version");
@@ -50,7 +69,7 @@ const trainLogDataSlice = createSlice({
         state.localDataVersion += 1; // Increment the data version
       }
     );
-    builder.addCase(getTrainLogDataFromServer.rejected, (state, action) => {
+    builder.addCase(getTrainLogDataFromServer.rejected, (_state, action) => {
       console.error("Failed to fetch train log data:", action.payload);
       // TODO
       // Optionally, you can reset the state or handle the error as needed

@@ -21,7 +21,7 @@ const MetricsDisplayChart: React.FC<MetricsDisplayChartProps> = ({
   const options = {
     grid: {
       top: 40,
-      bottom: legendHeight + 5, // Adaptive bottom margin based on legend
+      bottom: legendHeight + 2, // Adaptive bottom margin based on legend
       left: 0,
       right: 0,
       containLabel: true,
@@ -81,7 +81,7 @@ const MetricsDisplayChart: React.FC<MetricsDisplayChartProps> = ({
       hoverAnimation: false,
       smooth: false,
       lineStyle: {
-        width: 1,
+        width: 1.5,
       },
     })),
     legend: {

@@ -11,6 +11,8 @@ const buildSeriesForDisplay = (
 ): [string[], string[][], number[][][][]] => {
   // group metrics by branchId
 
+  console.log("Building series for display with branches:", displayBranches);
+
   let metricsNames: string[] = [];
   let branchNames: string[][] = [];
   let dataOptions: number[][][][] = [];

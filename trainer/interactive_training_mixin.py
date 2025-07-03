@@ -64,9 +64,19 @@ class InteractiveTrainingMixin(Generic[TrainerType]):
             current_branch_id_callback=self._server.get_current_branch,
             server_state_update_callback=self._server.update_log_state,
         )
+
+        pause_resume_callback = InteractiveCallback(
+            cmd_queue=self._server.messages_queue_by_type["pause_resume"],
+            event_queue=self._server.events_queue,
+            current_branch_id_callback=self._server.get_current_branch,
+            server_state_update_callback=self._server.update_server_state,
+        )
+
+        # callbacks executed in order
         self.add_callback(update_callback)
         self.add_callback(checkpoint_callback)
         self.add_callback(logging_callback)
+        self.add_callback(pause_resume_callback)
 
     def _get_output_dir(self, trial):
         """
@@ -130,7 +140,7 @@ class InteractiveTrainingMixin(Generic[TrainerType]):
                     {
                         "status": "success",
                         "command": LOAD_CHECKPOINT,
-                        "args": load_config,
+                        "args": json.dumps(load_config),
                         "uuid": self._load_message.uuid,
                         "time": self._load_message.time,
                     },

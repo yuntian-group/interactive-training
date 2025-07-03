@@ -19,6 +19,8 @@ from trainer.constants import (
     LOAD_CHECKPOINT,
     SUCCESS,
     MAIN_BRANCH_NAME,
+    PAUSE_TRAINING,
+    RESUME_TRAINING,
     Cmd,
 )
 
@@ -235,18 +237,22 @@ class InteractiveServer:
                 print(f"Branch {new_branch_name} already exists, not forking.")
                 return
             self._logs.branched_logs[new_branch_name] = []
-            self._logs.current_branch = new_branch_name
+
+            real_parent = self._logs.current_branch if parent is None else parent
 
             new_branch_info = BranchInfo(
-                id=new_branch_name,
-                wall_time=time.time(),
-                parent=self._logs.current_branch if parent is None else parent,
+                id=new_branch_name, wall_time=time.time(), parent=real_parent
             )
 
+            print("FUCJ NEW BRANCH INFO", str(new_branch_info))
+
             self._logs.branch_info[new_branch_name] = new_branch_info
-            if self._logs.current_branch not in self._logs.branch_tree:
-                self._logs.branch_tree[self._logs.current_branch] = []
-            self._logs.branch_tree[self._logs.current_branch].append(new_branch_name)
+            if real_parent not in self._logs.branch_tree:
+                self._logs.branch_tree[real_parent] = []
+            self._logs.branch_tree[real_parent].append(new_branch_name)
+
+            self._logs.current_branch = new_branch_name
+
             print(f"Forked new branch: {new_branch_name}")
             return {
                 "id": new_branch_name,
@@ -323,6 +329,12 @@ class InteractiveServer:
                 }
 
                 self._train_state.optimizer_states.update(unpacked_update)
+
+            elif event["command"] == PAUSE_TRAINING:
+                self._train_state.status = "paused"
+
+            elif event["command"] == RESUME_TRAINING:
+                self._train_state.status = "running"
 
     def _serialize_logs(self):
         """

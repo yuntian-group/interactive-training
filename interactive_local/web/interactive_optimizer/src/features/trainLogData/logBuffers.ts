@@ -1,4 +1,3 @@
-import type { init } from "echarts";
 import type { SingleMetricsPoint } from "./type";
 
 export interface SingleMetricsBuffer {

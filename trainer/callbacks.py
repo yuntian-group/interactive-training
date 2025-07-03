@@ -19,7 +19,10 @@ from trainer.constants import (
     CHECKPOINT_INFO_UPDATE,
     TRAIN_STATE_UPDATE,
     CMD_SUCCESS,
+    CMD_RUNNING,
     CMD_FAILED,
+    PAUSE_TRAINING,
+    RESUME_TRAINING,
     Cmd,
 )
 
@@ -49,6 +52,7 @@ class InteractiveCallback(InteractiveCallbackBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._cur_cmd_list = []
+        self._cmd_evaluate = False
 
     def _parse_model_tree(self, module_names: List[str]):
         """Parse a list of module names into a tree structure."""
@@ -231,15 +235,61 @@ class InteractiveCallback(InteractiveCallbackBase):
 
                 self._server_update_callback(msg)
                 self._event_queue.put(msg)
-            elif cmd.command == STOP_TRAINING or cmd.command == LOAD_CHECKPOINT:
+
+            elif cmd.command == STOP_TRAINING:
                 control.should_training_stop = True
+                msg = {
+                    "status": CMD_SUCCESS,
+                    "command": STOP_TRAINING,
+                    "args": cmd.args,
+                    "uuid": cmd.uuid,
+                    "time": cmd.time,
+                }
+                self._server_update_callback(msg)
+                self._event_queue.put(msg)
                 print("Training stopped by command.")
+
+            elif cmd.command == LOAD_CHECKPOINT:
+                control.should_training_stop = True
+                msg = {
+                    "status": CMD_RUNNING,
+                    "command": LOAD_CHECKPOINT,
+                    "args": cmd.args,
+                    "uuid": cmd.uuid,
+                    "time": cmd.time,
+                }
+                self._server_update_callback(msg)
+                self._event_queue.put(msg)
+
+            elif cmd.command == DO_EVALUATE:
+                control.should_evaluate = True
+                self._cmd_evaluate = True
+                msg = {
+                    "status": CMD_RUNNING,
+                    "command": DO_EVALUATE,
+                    "args": cmd.args,
+                    "uuid": cmd.uuid,
+                    "time": cmd.time,
+                }
 
             elif cmd.command == RESET_LAYER:
                 print("Resetting layer weights is not implemented yet.")
 
-            elif cmd.command == DO_EVALUATE:
-                control.should_evaluate = True
+        return control
+
+    def on_evaluate(self, args, state, control, **kwargs):
+        if self._cmd_evaluate:
+            self._cmd_evaluate = False
+            msg = {
+                "status": CMD_SUCCESS,
+                "command": DO_EVALUATE,
+                "args": "",
+                "uuid": str(uuid.uuid4()),
+                "time": time.time(),
+            }
+            self._server_update_callback(msg)
+            self._event_queue.put(msg)
+            control.should_evaluate = False  # Reset to avoid multiple evaluations
 
 
 class CheckpointCallback(InteractiveCallbackBase):
@@ -258,9 +308,6 @@ class CheckpointCallback(InteractiveCallbackBase):
 
     def on_save(self, args, state, control, **kwargs):
         """Called when a checkpoint is saved."""
-
-        print("SAVE CHECKPOINT INITED.")
-
         last_ckpt_dir = get_last_checkpoint(
             os.path.join(args.output_dir, self._current_branch_id_callback())
         )
@@ -298,3 +345,46 @@ class LoggingCallback(InteractiveCallbackBase):
         log["global_step"] = state.global_step
         event = self._server_update_callback(log)
         self._event_queue.put(event)
+
+
+class RunPauseCallback(InteractiveCallbackBase):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def on_step_end(self, args, state, control, **kwargs):
+        try:
+            cmd = self._cmd_queue.get_nowait()
+            if cmd.command == PAUSE_TRAINING:
+                event = {
+                    "status": CMD_SUCCESS,
+                    "command": PAUSE_TRAINING,
+                    "args": cmd.args,
+                    "uuid": cmd.uuid,
+                    "time": cmd.time,
+                }
+                self._server_update_callback(event)
+                self._event_queue.put(event)
+
+                print("Training paused by command.")
+
+                # blocking for pause
+                cmd_next = self._cmd_queue.get()
+                while True:
+                    if cmd_next.command in {RESUME_TRAINING, STOP_TRAINING}:
+                        if cmd_next.command == RESUME_TRAINING:
+                            event = {
+                                "status": CMD_SUCCESS,
+                                "command": RESUME_TRAINING,
+                                "args": cmd_next.args,
+                                "uuid": cmd_next.uuid,
+                                "time": cmd_next.time,
+                            }
+                            self._server_update_callback(event)
+                            self._event_queue.put(event)
+                            print("Training resumed by command.")
+                        break
+
+        except queue.Empty:
+            pass
+
+        return control
