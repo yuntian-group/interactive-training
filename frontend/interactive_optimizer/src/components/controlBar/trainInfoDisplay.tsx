@@ -1,5 +1,7 @@
 import clsx from "clsx";
 import { v4 as uuidv4 } from "uuid";
+import type { TrainCommandData } from "../../features/trainCommand/types";
+import { postTrainCommand } from "../../features/trainCommand/actions";
 import { useAppSelector, useAppDispatch } from "../../hooks/userTypedHooks";
 import { Pause, Square, BarChart3, Play } from "lucide-react";
 
@@ -17,39 +19,25 @@ const TrainInfoDisplay: React.FC<{
       status: "requested",
       uuid: uuidv4(),
       time: Date.now(),
-    };
+    } as TrainCommandData;
   };
 
   const dispatch = useAppDispatch();
 
-  console.log(trainInfo.start_time);
-
   const handlePauseTraining = () => {
-    dispatch({
-      type: "trainCommand/postTrainCommand",
-      payload: makeCommandForTrain("pause_training"),
-    });
+    dispatch(postTrainCommand(makeCommandForTrain("pause_training")));
   };
 
   const handleResumeTraining = () => {
-    dispatch({
-      type: "trainCommand/postTrainCommand",
-      payload: makeCommandForTrain("resume_training"),
-    });
+    dispatch(postTrainCommand(makeCommandForTrain("resume_training")));
   };
 
   const handleStopTraining = () => {
-    dispatch({
-      type: "trainCommand/postTrainCommand",
-      payload: makeCommandForTrain("stop_training"),
-    });
+    dispatch(postTrainCommand(makeCommandForTrain("stop_training")));
   };
 
   const handleEvaluate = () => {
-    dispatch({
-      type: "trainCommand/postTrainCommand",
-      payload: makeCommandForTrain("do_evaluate"),
-    });
+    dispatch(postTrainCommand(makeCommandForTrain("do_evaluate")));
   };
 
   return (
@@ -60,13 +48,14 @@ const TrainInfoDisplay: React.FC<{
       {loading ? (
         <p className="p-4 text-sm text-gray-500">Loading...</p>
       ) : error ? (
-        <p className="p-4 text-sm text-gray-500">{"Fail to load train information: " + error}</p>
+        <p className="p-4 text-sm text-gray-500">
+          {"Fail to load train information: " + error}
+        </p>
       ) : (
         <div className="space-y-4 p-4">
           <div className="space-y-2">
             <p>
-              <strong>Run Name:</strong>{" "}
-              {"TEST NAME"}
+              <strong>Run Name:</strong> {"TEST NAME"}
             </p>
             <p>
               <strong>Start Time:</strong>{" "}
@@ -76,9 +65,9 @@ const TrainInfoDisplay: React.FC<{
               <strong>Status:</strong> {trainInfo.status}
             </p>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-2">
-            {trainInfo.status === 'paused' ? (
+            {trainInfo.status === "paused" ? (
               <button
                 onClick={handleResumeTraining}
                 className="px-3 py-2 text-sm bg-green-500 text-white rounded hover:bg-green-600 flex items-center justify-center space-x-1"
@@ -90,7 +79,7 @@ const TrainInfoDisplay: React.FC<{
               <button
                 onClick={handlePauseTraining}
                 className="px-3 py-2 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:opacity-50 flex items-center justify-center space-x-1"
-                disabled={trainInfo.status !== 'running'}
+                disabled={trainInfo.status !== "running"}
               >
                 <Pause size={16} />
                 <span>Pause</span>
@@ -99,7 +88,7 @@ const TrainInfoDisplay: React.FC<{
             <button
               onClick={handleStopTraining}
               className="px-3 py-2 text-sm bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 flex items-center justify-center space-x-1"
-              disabled={trainInfo.status === 'stopped'}
+              disabled={trainInfo.status === "stopped"}
             >
               <Square size={16} />
               <span>Stop</span>

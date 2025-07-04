@@ -13,8 +13,10 @@ export interface BranchInfo {
 
 export default interface TrainLogData {
   localDataVersion: number;
+  localLogVersion: number;
   currentBranch: string;
   branchInfo: Record<string, BranchInfo>;
   branchTree: Record<string, string[]>;
   displayBranch: string[];
+  curLog: string; // Current log content
 }

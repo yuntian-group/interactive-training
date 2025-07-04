@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { useAppSelector, useAppDispatch } from "../../hooks/userTypedHooks";
 import LogDisplay from "./logDisplay";
 import ModelLayerControl from "./modelLayerControl";
+import { setActiveTab } from "../../features/bottomDisplayState/reducer";
 
 interface TabsProps {
   onChange?: (tab: string, index: number) => void;
@@ -19,7 +20,7 @@ export const Tabs: React.FC<TabsProps> = ({ onChange, className }) => {
   );
 
   const handleSelect = (tab: string, idx: number) => {
-    dispatch({ type: "bottomDisplayState/setActiveTabReducer", payload: tab });
+    dispatch(setActiveTab(tab));
     onChange?.(tab, idx);
   };
 

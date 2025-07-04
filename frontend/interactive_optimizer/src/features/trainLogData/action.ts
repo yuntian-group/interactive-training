@@ -63,7 +63,9 @@ export const getTrainLogDataFromServer = createAsyncThunk(
         branchInfo: data.branch_info || {}, // Information about each branch
         currentBranch: data.current_branch || "main", // Current branch name
         displayBranch: [],
+        curLog: "", // Current log content
         localDataVersion: 0, // Version of the data structure
+        localLogVersion: 0, // Version of the log data
       };
 
       // Compute the display branch based on the current branch and its parent

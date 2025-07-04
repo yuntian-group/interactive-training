@@ -17,7 +17,6 @@ const generateOptimizerUpdateTrainCommand = (
     time: Date.now(),
     status: "requested",
   };
-  console.log(command);
   return command;
 };
 

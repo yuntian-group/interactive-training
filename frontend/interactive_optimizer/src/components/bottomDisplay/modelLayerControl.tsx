@@ -1,6 +1,8 @@
 // /root/interactive_trainer/interactive_local/web/interactive_optimizer/src/components/bottomDisplay/modelLayerControl.tsx
 import React, { useState } from "react";
 import clsx from "clsx";
+import { useAppSelector } from "../../hooks/userTypedHooks";
+import type { ModelDataNode } from "../../features/modelInfo/type";
 
 interface InfoFieldProps {
     label: string;
@@ -216,17 +218,23 @@ interface ModelLayerControlProps {
 
 const ModelLayerControl: React.FC<ModelLayerControlProps> = ({
     className,
-    infoFields = [
-        { label: "Name", value: "TEST NAME" },
-        { label: "Type", value: "TEST TYPE" },
-        { label: "Shape", value: "TEST SHAPE" },
-        { label: "Params", value: "TEST PARAMS" }
-    ],
     numericalControls,
     actionControls
 }) => {
     const [dropoutRate, setDropoutRate] = useState(0.01);
     const [weightDecay, setWeightDecay] = useState(0.0001);
+    const selectedLayer = useAppSelector((state) => state.modelInfo.selectedLayer);
+    const layerInfo = useAppSelector((state) => state.modelInfo.nodeMap[selectedLayer] || {
+        name: selectedLayer,
+        moduleType: "Unknown",
+        children: [],
+        operators: [],
+    } as ModelDataNode);
+
+    const infoFields = [
+        { label: "Layer Name", value: layerInfo.name || "Unknown" },
+        { label: "Layer Type", value: layerInfo.moduleType || "Unknown" },
+    ]
 
     // Default numerical controls if none provided
     const defaultNumericalControls = [

@@ -1,14 +1,44 @@
 import type { Middleware } from "@reduxjs/toolkit";
-import { WebSocketActionTypes, type WebSocketActions } from "./types";
 import { createWebSocket } from "../../api/api";
-import { updateCommandStatus } from "../trainCommand/reducer";
-import type { TrainCommandData } from "../trainCommand/types";
-import { getCheckpointStateFromServer } from "../checkpointState/action";
-import type { SingleMetricsPoint } from "../trainLogData/type";
 import type { BranchInfo } from "../trainLogData/type";
+import type { TrainCommandData } from "../trainCommand/types";
+import type { SingleMetricsPoint } from "../trainLogData/type";
 import { appendNewDataPoint } from "../trainLogData/logBuffers";
+import { WebSocketActionTypes, type WebSocketActions } from "./types";
+import { getCheckpointStateFromServer } from "../checkpointState/action";
 
 let socket: WebSocket | null = null;
+
+const timeDisplayOption: Intl.DateTimeFormatOptions = {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+};
+
+const logToString = (msg: TrainCommandData): string => {
+  //convert timestamp to human-readable format
+  // normalize timestamp (if it's in seconds, convert to ms)
+
+  const raw = typeof msg.time === "string" ? parseFloat(msg.time) : msg.time;
+  const timestampMs = raw > 1e12 ? raw : raw * 1000;
+  const date = new Date(timestampMs);
+
+  const formattedDate = date.toLocaleString("en-US", timeDisplayOption);
+
+  if (msg.command === "log_update") {
+    // If the command is log_update, we want to return the log update message
+    const metricsStr = JSON.stringify(JSON.parse(msg.args).metrics);
+    return `${formattedDate} - ${msg.command}: ${metricsStr}`;
+  }
+
+  return `${formattedDate} - ${msg.command} [${
+    msg.status ? msg.status : "unknown"
+  }]`;
+};
 
 export const websocketMiddleware: Middleware =
   (store) => (next) => (action: unknown) => {
@@ -27,37 +57,78 @@ export const websocketMiddleware: Middleware =
             status: msg.status || "received",
           };
 
+          store.dispatch({
+            type: "trainLogData/updateCurrentLog",
+            payload: logToString(msgTrainCommandData),
+          });
+
           if (msg.command === "log_update") {
             const logUpdateData = JSON.parse(msg.args) as SingleMetricsPoint;
             appendNewDataPoint(logUpdateData);
             store.dispatch({
               type: "trainLogData/bumpLocalDataVersion",
             });
-          } else if (
-            msg.command === "load_checkpoint" &&
-            msg.status === "success"
-          ) {
-            const branchInfo = JSON.parse(msg.args).branch_info as BranchInfo;
-            console.log("Forking branch with info raw:", branchInfo);
-
-            store.dispatch({
-              type: "trainLogData/fork",
-              payload: branchInfo,
-            });
           } else {
-            store.dispatch(updateCommandStatus(msgTrainCommandData));
-
+            // store.dispatch(updateCommandStatus(msgTrainCommandData));
             if (msg.status === "success") {
               switch (msg.command) {
                 case "checkpoint_info_update":
                   store.dispatch(getCheckpointStateFromServer() as any);
+                  break;
+                case "load_checkpoint":
+                  const branchInfo = JSON.parse(msg.args)
+                    .branch_info as BranchInfo;
+                  store.dispatch({
+                    type: "trainLogData/fork",
+                    payload: branchInfo,
+                  });
+                  break;
+                case "pause_training":
+                  store.dispatch({
+                    type: "trainInfo/pauseTrain",
+                  });
+                  break;
+                case "resume_training":
+                  store.dispatch({
+                    type: "trainInfo/resumeTrain",
+                  });
+                  break;
+                case "stop_training":
+                  store.dispatch({
+                    type: "trainInfo/stopTrain",
+                  });
+                  break;
               }
             }
           }
 
           console.log("Received WebSocket message:", msg);
         };
-        socket.onclose = () => {
+
+        socket.onerror = (error) => {
+          console.error("WebSocket error occurred:", error);
+          store.dispatch({
+            type: "trainLogData/updateCurrentLog",
+            payload: `${new Date().toLocaleString(
+              "en-US",
+              timeDisplayOption
+            )} - WebSocket Error: Connection error occurred`,
+          });
+        };
+
+        socket.onclose = (event: CloseEvent) => {
+          const { code } = event;
+          let closeMessage = `WebSocket connection closed. Code: ${code}`;
+          console.log(closeMessage);
+
+          store.dispatch({
+            type: "trainLogData/updateCurrentLog",
+            payload: `${new Date().toLocaleString(
+              "en-US",
+              timeDisplayOption
+            )} - ${closeMessage}`,
+          });
+
           store.dispatch({ type: WebSocketActionTypes.CLOSED });
         };
         break;

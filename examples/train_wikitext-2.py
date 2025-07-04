@@ -11,13 +11,14 @@ from transformers import (
     DataCollatorForLanguageModeling,
 )
 
+from src import make_interactive
+
 
 def main():
     model_name = "openai-community/gpt2"
     data_name = "wikitext"
     data_part = "wikitext-2-raw-v1"
     wandb.init(project="interactive-trainer-wikitext")
-    config = AutoConfig.from_pretrained(model_name)
     model = AutoModelForCausalLM.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     collator = DataCollatorForLanguageModeling(
@@ -27,10 +28,10 @@ def main():
     tokenizer.padding_side = "left"
     args = TrainingArguments(
         output_dir="./wikitext2",
-        per_device_train_batch_size=32,
-        per_device_eval_batch_size=32,
+        per_device_train_batch_size=16,
+        per_device_eval_batch_size=16,
         gradient_accumulation_steps=1,
-        num_train_epochs=1,
+        num_train_epochs=10,
         learning_rate=2e-4,
         logging_steps=10,
         save_steps=1000,
@@ -56,7 +57,9 @@ def main():
         tokenize_function, batched=True, remove_columns=["text"]
     )
 
-    trainer = Trainer(
+    interactive_trainer_cls = make_interactive(Trainer)
+
+    trainer = interactive_trainer_cls(
         model=model,
         args=args,
         train_dataset=train_data,

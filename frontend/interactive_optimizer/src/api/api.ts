@@ -1,13 +1,15 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://127.0.0.1:9876",
+  baseURL: "http://localhost:9876",
   timeout: 10000,
   headers: {
     "Access-Control-Allow-Origin": "*",
     "Content-Type": "application/json",
   },
 });
+
+export const websocketHost = "ws://localhost:9876/ws/message/";
 
 export const getTrainingState = async () => {
   try {

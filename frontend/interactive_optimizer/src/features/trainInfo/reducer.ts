@@ -6,7 +6,7 @@ import type { TrainInfoData } from "./types";
 const initialState: trainInfoState = {
   trainInfo: {
     start_time: 0,
-    status: "unknown",
+    status: "init",
   },
   loading: false,
   error: null,
@@ -18,6 +18,15 @@ const trainInfoSlice = createSlice({
   reducers: {
     updateTrainInfo: (state, action: PayloadAction<TrainInfoData>) => {
       state.trainInfo = action.payload;
+    },
+    pauseTrain: (state) => {
+      state.trainInfo.status = "paused";
+    },
+    resumeTrain: (state) => {
+      state.trainInfo.status = "running";
+    },
+    stopTrain: (state) => {
+      state.trainInfo.status = "stopped";
     },
   },
   extraReducers: (builder) => {

@@ -1,13 +1,16 @@
 import NavigationBar from "./components/navbar/navbar";
 import ControlBar from "./components/controlBar/controlBar";
+
 import MetricsPanel from "./components/metricsDisplay/metricsPanel";
 import BottomDisplay from "./components/bottomDisplay/bottomDisplay";
+import { getModelInfoFromServer } from "./features/modelInfo/action";
 import { useAppDispatch, useAppSelector } from "./hooks/userTypedHooks";
-import { getOptimizerStateFromServer } from "./features/optimizerState/action";
-import { getCheckpointStateFromServer } from "./features/checkpointState/action";
 import { getTrainLogDataFromServer } from "./features/trainLogData/action";
 import { getTrainInfoForInitializaiton } from "./features/trainInfo/actions";
-import { getModelInfoFromServer } from "./features/modelInfo/action";
+import { getOptimizerStateFromServer } from "./features/optimizerState/action";
+import { getCheckpointStateFromServer } from "./features/checkpointState/action";
+
+
 import {
   connectWebSocket,
   disconnectWebSocket,
@@ -17,6 +20,8 @@ import "./App.css";
 import { useEffect, useRef, useState } from "react";
 import { Resizable } from "re-resizable";
 import { toPixels } from "./utils/cssLength";
+import {websocketHost} from "./api/api";
+
 
 function App() {
   const dispatch = useAppDispatch();
@@ -92,9 +97,11 @@ function App() {
     });
   }, [bottomHeight, dispatch]);
 
+  const hasConnectedRef = useRef(false);
+
   useEffect(() => {
-    // Trigger only once when the training starts
-    if (trainInfoStatus === "running") {
+    // Trigger only once when the training starts for the first time
+    if (trainInfoStatus === "running" && !hasConnectedRef.current) {
       console.log(
         "Training started, initializing data fetch and WebSocket connection."
       );
@@ -102,13 +109,19 @@ function App() {
       dispatch(getOptimizerStateFromServer());
       dispatch(getCheckpointStateFromServer());
       dispatch(getTrainLogDataFromServer());
-      dispatch(connectWebSocket("ws://localhost:9876/ws/message/"));
-      return () => {
-        // Cleanup: disconnect the WebSocket when the component unmounts or training stops
-        dispatch(disconnectWebSocket());
-      };
+      dispatch(connectWebSocket(websocketHost));
+      hasConnectedRef.current = true;
     }
   }, [dispatch, trainInfoStatus]);
+
+  useEffect(() => {
+    // Cleanup: disconnect the WebSocket only when the component unmounts (page refresh/navigation)
+    return () => {
+      if (hasConnectedRef.current) {
+        dispatch(disconnectWebSocket());
+      }
+    };
+  }, [dispatch]);
 
   return (
     <div className="App h-screen w-screen bg-gray-100 flex flex-col">

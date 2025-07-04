@@ -1,6 +1,6 @@
 import os
 import datasets
-from trainer import make_interactive
+from src import make_interactive
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,

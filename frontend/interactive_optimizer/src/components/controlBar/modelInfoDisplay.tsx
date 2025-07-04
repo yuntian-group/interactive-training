@@ -39,6 +39,11 @@ const displayTree = (node: ModelDataNode, dispatch: any): React.ReactNode => (
       </div>
     }
     onClick={(e) => {
+      console.log("Selected layer:", node.name);
+      dispatch({
+        type: "modelInfoState/selectLayer",
+        payload: node.name,
+      });
       dispatch({
         type: "bottomDisplayState/addAndSetActiveTab",
         payload: "MODEL",
@@ -54,10 +59,7 @@ const displayTree = (node: ModelDataNode, dispatch: any): React.ReactNode => (
 
 const TrainInfoDisplay: React.FC<{ className?: string }> = ({ className }) => {
   const appDispatch = useAppDispatch();
-  
-  const modelInfo = useAppSelector((state) => state.modelInfo.module_tree);
-
-
+  const modelInfo = useAppSelector((state) => state.modelInfo.moduleTree);
   const [filterText, setFilterText] = useState("");
 
   const filteredModelInfo = useMemo(() => {
@@ -68,17 +70,18 @@ const TrainInfoDisplay: React.FC<{ className?: string }> = ({ className }) => {
   }, [modelInfo, filterText]);
 
   const loadStatus = useAppSelector((state) => state.modelInfo.status);
-  const loadDisplayInfo = loadStatus === "loading" ? (
-    <p className="p-4 text-sm text-gray-500">Loading model info...</p>
-  ) : loadStatus === "failed" ? (
-    <p className="p-4 text-sm text-red-500">
-      Failed to load model info. Please try again later.
-    </p>
-  ) : loadStatus === "idle" ? (
-    <p className="p-4 text-sm text-gray-500">
-      Model info not loaded yet. Please initiate a load.
-    </p>
-  ) : null;
+  const loadDisplayInfo =
+    loadStatus === "loading" ? (
+      <p className="p-4 text-sm text-gray-500">Loading model info...</p>
+    ) : loadStatus === "failed" ? (
+      <p className="p-4 text-sm text-red-500">
+        Failed to load model info. Please try again later.
+      </p>
+    ) : loadStatus === "idle" ? (
+      <p className="p-4 text-sm text-gray-500">
+        Model info not loaded yet. Please initiate a load.
+      </p>
+    ) : null;
 
   if (loadStatus !== "succeeded") {
     return (

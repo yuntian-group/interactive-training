@@ -1,4 +1,5 @@
 import type { SingleMetricsPoint } from "./type";
+import type { TrainCommandData } from "../trainCommand/types";
 
 export interface SingleMetricsBuffer {
   localSteps: Float64Array;
