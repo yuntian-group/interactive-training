@@ -2,12 +2,11 @@ import wandb
 import torch
 from datasets import load_dataset
 from transformers import (
-    AutoTokenizer,
-    GPT2LMHeadModel,
-    AutoModelForCausalLM,
-    AutoConfig,
     Trainer,
+    AutoConfig,
+    AutoTokenizer,
     TrainingArguments,
+    GPT2LMHeadModel,
     DataCollatorForLanguageModeling,
 )
 
@@ -19,7 +18,8 @@ def main():
     data_name = "wikitext"
     data_part = "wikitext-2-raw-v1"
     wandb.init(project="interactive-trainer-wikitext")
-    model = AutoModelForCausalLM.from_pretrained(model_name)
+    config = AutoConfig.from_pretrained(model_name)
+    model = GPT2LMHeadModel(config=config)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer, mlm=False, pad_to_multiple_of=8
