@@ -96,6 +96,7 @@ const TrainInfoDisplay: React.FC<{
             <button
               onClick={handleEvaluate}
               className="px-3 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center justify-center space-x-1 col-span-2"
+              disabled={trainInfo.status === "stopped"}
             >
               <BarChart3 size={16} />
               <span>Evaluate</span>

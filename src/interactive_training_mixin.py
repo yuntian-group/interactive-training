@@ -140,7 +140,9 @@ class InteractiveTrainingMixin(Generic[TrainerType]):
                     break
 
                 kwargs["resume_from_checkpoint"] = ckpt_info["checkpoint_dir"]
-                new_branch_info = self._server.fork_branch(ckpt_info["branch_id"])
+                new_branch_info = self._server.fork_branch(
+                    ckpt_info["branch_id"], load_config["branch_name"]
+                )
                 load_config["branch_info"] = new_branch_info
                 self._server.enqueue_event(
                     {

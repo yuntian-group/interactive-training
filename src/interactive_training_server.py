@@ -233,16 +233,22 @@ class InteractiveServer:
         with self._log_lock:
             return self._logs.current_branch
 
-    def fork_branch(self, parent: str | None = None) -> dict:
+    def fork_branch(
+        self, parent: str | None = None, input_branch_name: str | None = None
+    ) -> dict:
         """
         Fork the current branch of logs to a new branch.
         If the branch already exists, it will not be overwritten.
         """
         with self._log_lock:
-            new_branch_name = f"branch_{len(self._logs.branched_logs)}"
+            new_branch_name = (
+                f"branch_{len(self._logs.branched_logs)}"
+                if input_branch_name is None
+                else input_branch_name
+            )
             if new_branch_name in self._logs.branched_logs:
                 print(f"Branch {new_branch_name} already exists, not forking.")
-                return
+                return {}
             self._logs.branched_logs[new_branch_name] = []
 
             real_parent = self._logs.current_branch if parent is None else parent
@@ -250,8 +256,6 @@ class InteractiveServer:
             new_branch_info = BranchInfo(
                 id=new_branch_name, wall_time=time.time(), parent=real_parent
             )
-
-            print("FUCJ NEW BRANCH INFO", str(new_branch_info))
 
             self._logs.branch_info[new_branch_name] = new_branch_info
             if real_parent not in self._logs.branch_tree:
