@@ -16,8 +16,9 @@ const MetricsDisplayChart: React.FC<MetricsDisplayChartProps> = ({
   branchNames,
   branchDataList,
 }) => {
-  const legendHeight = branchNames.length > 0 ? Math.ceil(branchNames.length / 4) * 20 + 10 : 30;
-  
+  const legendHeight =
+    branchNames.length > 0 ? Math.ceil(branchNames.length / 4) * 20 + 10 : 30;
+
   const options = {
     grid: {
       top: 40,
@@ -41,18 +42,21 @@ const MetricsDisplayChart: React.FC<MetricsDisplayChartProps> = ({
       type: "value",
       name: "Step",
       axisLabel: {
-        interval: 'auto', // Automatically determine interval
+        interval: "auto", // Automatically determine interval
         rotate: 0, // Keep horizontal, but will rotate if needed
         formatter: (value: number) => {
           // Format large numbers for better readability
+          if (value !== 0 && Math.abs(value) < 0.001) {
+            return value.toExponential(2);
+          }
           if (value >= 1000000) {
-            return (value / 1000000).toFixed(1) + 'M';
+            return (value / 1000000).toFixed(1) + "M";
           }
           if (value >= 1000) {
-            return (value / 1000).toFixed(1) + 'K';
+            return (value / 1000).toFixed(1) + "K";
           }
           return value.toString();
-        }
+        },
       },
       splitNumber: 5, // Limit number of ticks
     },
@@ -60,16 +64,19 @@ const MetricsDisplayChart: React.FC<MetricsDisplayChartProps> = ({
       type: "value",
       name: "Value",
       axisLabel: {
-        interval: 'auto',
+        interval: "auto",
         formatter: (value: number) => {
+          if (value !== 0 && Math.abs(value) < 0.001) {
+            return value.toExponential(2);
+          }
           if (Math.abs(value) >= 1000000) {
-            return (value / 1000000).toFixed(1) + 'M';
+            return (value / 1000000).toFixed(1) + "M";
           }
           if (Math.abs(value) >= 1000) {
-            return (value / 1000).toFixed(1) + 'K';
+            return (value / 1000).toFixed(1) + "K";
           }
           return value.toFixed(2);
-        }
+        },
       },
       splitNumber: 5,
     },

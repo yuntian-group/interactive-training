@@ -10,6 +10,7 @@ from uvicorn import Config, Server
 from dataclasses import dataclass, field
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.exceptions import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from src.constants import (
@@ -380,9 +381,9 @@ class InteractiveServer:
     def _setup_routes(self):
         # if os.path.exists(FRONTEND_DIST):
         #     self.app.mount(
-        #         "/static",
-        #         StaticFiles(directory=os.path.join(FRONTEND_DIST, "static")),
-        #         name="static",
+        #         "/assets",
+        #         StaticFiles(directory=os.path.join(FRONTEND_DIST, "assets")),
+        #         name="assets",
         #     )
 
         #     # Catch-all route for React SPA

@@ -6,7 +6,7 @@ from transformers import (
     AutoConfig,
     AutoTokenizer,
     TrainingArguments,
-    GPT2LMHeadModel,
+    AutoModelForCausalLM,
     DataCollatorForLanguageModeling,
 )
 
@@ -18,8 +18,7 @@ def main():
     data_name = "wikitext"
     data_part = "wikitext-2-raw-v1"
     wandb.init(project="interactive-trainer-wikitext")
-    config = AutoConfig.from_pretrained(model_name)
-    model = GPT2LMHeadModel(config=config)
+    model = AutoModelForCausalLM.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer, mlm=False, pad_to_multiple_of=8
@@ -31,11 +30,11 @@ def main():
         per_device_train_batch_size=16,
         per_device_eval_batch_size=16,
         gradient_accumulation_steps=1,
-        num_train_epochs=5,
-        learning_rate=1e-4,
+        num_train_epochs=2,
+        learning_rate=5e-3,
         logging_steps=10,
-        save_steps=1000,
-        eval_steps=1000,
+        save_steps=500,
+        eval_steps=100,
         eval_strategy="steps",
         fp16=True,
         report_to="wandb",
