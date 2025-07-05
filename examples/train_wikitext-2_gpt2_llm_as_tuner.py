@@ -17,7 +17,7 @@ def main():
     model_name = "openai-community/gpt2"
     data_name = "wikitext"
     data_part = "wikitext-2-raw-v1"
-    wandb.init(project="interactive-trainer-wikitext")
+    wandb.init(project="interactive-trainer-wikitext-llm-as-tuner")
     model = AutoModelForCausalLM.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     collator = DataCollatorForLanguageModeling(
