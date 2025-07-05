@@ -8,6 +8,7 @@ from transformers import (
     TrainingArguments,
     AutoModelForCausalLM,
     DataCollatorForLanguageModeling,
+    get_constant_schedule,
 )
 
 from src import make_interactive
@@ -32,6 +33,7 @@ def main():
         gradient_accumulation_steps=1,
         num_train_epochs=2,
         learning_rate=5e-3,
+        lr_scheduler_type="constant",
         logging_steps=10,
         save_steps=500,
         eval_steps=100,
