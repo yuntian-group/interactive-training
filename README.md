@@ -9,14 +9,7 @@ Interactive Training is an open-source framework that enables real-time, feedbac
 
 ## 🎮 Try the Interactive Demo
 
-**Experience the power of dynamic optimization control!** 
-
-Play our interactive game at [**interactivetraining.ai**](https://interactivetraining.ai/) to understand how real-time learning rate adjustments can dramatically improve optimization. Control the learning rate in real-time to collect targets in loss landscape valleys and see firsthand why dynamic control beats fixed optimization strategies.
-
-- 🎯 **4 Challenge Levels**: From valley collection to oscillating treasure hunts
-- 🎚️ **Real-time Controls**: Adjust learning rate and see immediate effects
-- 📊 **Visual Feedback**: Watch your optimizer navigate the loss landscape
-- 🏆 **Gamified Learning**: Score points while learning optimization principles
+Play our interactive game at [**interactivetraining.ai**](https://interactivetraining.ai/) experience the power of dynamic optimization control.
 
 ## 🚀 Key Features
 
@@ -258,19 +251,6 @@ interactive_training/
 
 We welcome contributions!
 
-### Development Setup
-
-```bash
-# Clone and install in development mode
-git clone https://github.com/yuntian-group/interactive-training.git
-cd interactive-training
-pip install -e ".[dev]"
-
-# Set up frontend
-cd frontend/interactive_optimizer
-npm install
-npm run dev
-```
 
 ## 📖 Citation
 
@@ -284,24 +264,3 @@ If you use Interactive Training in your research, please cite:
   year={2025}
 }
 ```
-
-## 📜 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🔗 Links
-
-- [Demo](https://interactivetraining.ai)
-- [Documentation](https://docs.interactivetraining.ai)
-- [GitHub Issues](https://github.com/yuntian-group/interactive-training/issues)
-- [Discussions](https://github.com/yuntian-group/interactive-training/discussions)
-
-## 🆘 Support
-
-- **Issues**: Report bugs and request features via [GitHub Issues](https://github.com/yuntian-group/interactive-training/issues)
-- **Discussions**: Join the community discussion on [GitHub Discussions](https://github.com/yuntian-group/interactive-training/discussions)
-- **Email**: Contact the maintainers at [contact@interactivetraining.ai](mailto:contact@interactivetraining.ai)
-
----
-
-**Interactive Training** - Transforming neural network optimization from a static task into an active and responsive process.
