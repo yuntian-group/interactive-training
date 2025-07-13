@@ -254,17 +254,9 @@ interactive_training/
 - **`examples/train_wikitext-2_gpt2.py`**: Complete example showing basic usage
 - **`examples/llm_as_tuner.py`**: Example of LLM-based automated optimization
 
-## 🧪 Case Studies
-
-The repository includes experimental data from three case studies:
-
-1. **Human-in-the-Loop** (`exp1_data/`): Human experts vs. static training on WikiText-2
-2. **LLM-in-the-Loop** (`exp2_data/`): LLM agents vs. static training with suboptimal hyperparameters
-3. **Real-time Adaptation**: Dynamic adaptation to user-generated data
-
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributions!
 
 ### Development Setup
 
@@ -287,9 +279,9 @@ If you use Interactive Training in your research, please cite:
 ```bibtex
 @article{interactive_training_2024,
   title={Interactive Training: Feedback-Driven Neural Network Optimization},
-  author={[Authors]},
-  journal={[Journal]},
-  year={2024}
+  author={Wentao Zhang, Yang Young Lu, Yuntian Deng},
+  url={https://github.com/yuntian-group/interactive-training},
+  year={2025}
 }
 ```
 
