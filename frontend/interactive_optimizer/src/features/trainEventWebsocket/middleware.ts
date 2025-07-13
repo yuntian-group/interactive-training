@@ -6,6 +6,7 @@ import type { SingleMetricsPoint } from "../trainLogData/type";
 import { appendNewDataPoint } from "../trainLogData/logBuffers";
 import { WebSocketActionTypes, type WebSocketActions } from "./types";
 import { getCheckpointStateFromServer } from "../checkpointState/action";
+import TermnialHistoryManager from "../terminalHistory/terminalHistoryManager";
 
 let socket: WebSocket | null = null;
 
@@ -40,6 +41,8 @@ const logToString = (msg: TrainCommandData): string => {
   }]`;
 };
 
+const terminalHistoryManager = TermnialHistoryManager.getInstance();
+
 export const websocketMiddleware: Middleware =
   (store) => (next) => (action: unknown) => {
     const wsAction = action as WebSocketActions;
@@ -57,9 +60,13 @@ export const websocketMiddleware: Middleware =
             status: msg.status || "received",
           };
 
+          const logStr = logToString(msgTrainCommandData);
+
+          terminalHistoryManager.addToHistory(logStr);
+
           store.dispatch({
             type: "trainLogData/updateCurrentLog",
-            payload: logToString(msgTrainCommandData),
+            payload: logStr,
           });
 
           if (msg.command === "log_update") {

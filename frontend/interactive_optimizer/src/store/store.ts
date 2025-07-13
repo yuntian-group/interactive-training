@@ -8,6 +8,8 @@ import checkpointStateReducer from "../features/checkpointState/reducer";
 import TrainLogDataReducer from "../features/trainLogData/reducer";
 import ModelInfoReducer from "../features/modelInfo/reducer";
 import BottomDisplayStateReducer from "../features/bottomDisplayState/reducer";
+import DatasetInfoStateReducer from "../features/datasetInfo/reducer";
+
 // Define the store
 export const store = configureStore({
   reducer: {
@@ -19,6 +21,7 @@ export const store = configureStore({
     checkpointState: checkpointStateReducer,
     trainLogData: TrainLogDataReducer,
     bottomDisplayState: BottomDisplayStateReducer,
+    datasetInfoState: DatasetInfoStateReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(websocketMiddleware),

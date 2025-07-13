@@ -10,10 +10,6 @@ export const computeDisplayBranch = (
   branchInfo: Record<string, { id: string; wall_time: number; parent: string }>,
   currentBranch: string
 ): string[] => {
-  console.log("Computing display branch for:", currentBranch);
-  console.log("Branch tree:", branchTree);
-  console.log("Branch info:", branchInfo);
-
   const displayBranch: string[] = [currentBranch];
   const currentBranchParent: string | null =
     branchInfo[currentBranch]?.parent || null;
@@ -56,8 +52,6 @@ export const getTrainLogDataFromServer = createAsyncThunk(
       const response = await getTrainLogData();
       const data = response.data;
 
-      console.log("Received train log data:", data);
-
       const trainLogData: TrainLogData = {
         branchTree: data.branch_tree || { main: [] }, // Tree structure of branches
         branchInfo: data.branch_info || {}, // Information about each branch
@@ -77,8 +71,6 @@ export const getTrainLogDataFromServer = createAsyncThunk(
 
       const initialBranchLogs =
         data.branched_logs || ({} as Record<string, SingleMetricsPoint[]>);
-
-      console.log("Initial branch logs:", initialBranchLogs);
       loadInitialSnapshot(initialBranchLogs);
       return trainLogData;
     } catch (error) {

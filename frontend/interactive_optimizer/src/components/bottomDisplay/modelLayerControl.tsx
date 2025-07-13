@@ -1,150 +1,10 @@
-// /root/interactive_trainer/interactive_local/web/interactive_optimizer/src/components/bottomDisplay/modelLayerControl.tsx
 import React, { useState } from "react";
 import clsx from "clsx";
 import { useAppSelector } from "../../hooks/userTypedHooks";
 import type { ModelDataNode } from "../../features/modelInfo/type";
+import { InfoDisplay, NumericalControl, ActionControl} from "../sharedControl/sharedControl";
 
-interface InfoFieldProps {
-    label: string;
-    value: string;
-}
-
-const InfoField: React.FC<InfoFieldProps> = ({ label, value }) => (
-    <div className="bg-gray-100 p-1.5">
-        <div className="text-[10px] font-medium text-gray-500 text-left mb-1">
-            {label}
-        </div>
-        <p className="text-xs font-semibold text-gray-900 truncate">{value}</p>
-    </div>
-);
-
-interface InfoDisplayProps {
-    fields: Array<{ label: string; value: string }>;
-}
-
-const InfoDisplay: React.FC<InfoDisplayProps> = ({ fields }) => (
-    <div className="space-y-2">
-        <div className="text-sm font-medium text-gray-700">Layer Information</div>
-        <div className="grid grid-cols-4 gap-1">
-            {fields.map((field, index) => (
-                <InfoField key={index} label={field.label} value={field.value} />
-            ))}
-        </div>
-    </div>
-);
-
-interface NumericalControlProps {
-    label: string;
-    value: number;
-    min: number;
-    max: number;
-    step: number;
-    onChange: (value: number) => void;
-    onApply: (value: number) => void;
-    id: string;
-}
-
-const NumericalControl: React.FC<NumericalControlProps> = ({
-    label,
-    value,
-    min,
-    max,
-    step,
-    onChange,
-    onApply,
-    id,
-}) => {
-    const [inputValue, setInputValue] = useState(value.toString());
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setInputValue(e.target.value);
-    };
-
-    const handleInputBlur = () => {
-        const numValue = parseFloat(inputValue);
-        if (!isNaN(numValue) && numValue >= min && numValue <= max) {
-            onChange(numValue);
-        } else {
-            setInputValue(value.toString());
-        }
-    };
-
-    const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            handleInputBlur();
-        }
-    };
-
-    React.useEffect(() => {
-        setInputValue(value.toString());
-    }, [value]);
-
-    return (
-        <div className="bg-gray-50 p-2 space-y-2">
-            <div className="flex justify-between items-center">
-                <label htmlFor={id} className="text-xs font-medium text-gray-700">
-                    {label}
-                </label>
-                <input
-                    type="text"
-                    value={inputValue}
-                    onChange={handleInputChange}
-                    onBlur={handleInputBlur}
-                    onKeyPress={handleKeyPress}
-                    className="px-1 py-0.5 bg-gray-200 text-xs font-mono text-gray-700 w-16 text-center rounded-none focus:outline-none focus:ring-2 focus:ring-black-500"
-                />
-            </div>
-            <input
-                id={id}
-                type="range"
-                min={min}
-                max={max}
-                step={step}
-                value={value}
-                onChange={(e) => onChange(parseFloat(e.target.value))}
-                className="w-full h-1.5 bg-gray-200 appearance-none cursor-pointer rounded-none"
-            />
-            <button
-                onClick={() => onApply(value)}
-                className="w-full px-2 py-1 bg-blue-600 text-white text-xs hover:bg-blue-700 transition-colors"
-            >
-                Apply
-            </button>
-        </div>
-    );
-};
-
-interface ActionControlProps {
-    label: string;
-    variant?: 'primary' | 'secondary' | 'danger';
-    onClick: () => void;
-}
-
-const ActionControl: React.FC<ActionControlProps> = ({ 
-    label, 
-    variant = 'primary',
-    onClick 
-}) => {
-    const variantClasses = {
-        primary: "bg-blue-600 text-white hover:bg-blue-700",
-        secondary: "bg-gray-600 text-white hover:bg-gray-700",
-        danger: "bg-red-600 text-white hover:bg-red-700"
-    };
-
-    return (
-        <button 
-            className={clsx(
-                "flex-1 px-2 py-1 text-xs transition-colors",
-                variantClasses[variant]
-            )}
-            onClick={onClick}
-        >
-            {label}
-        </button>
-    );
-};
-
-interface ControlSectionProps {
+export interface ControlSectionProps {
     numericalControls?: Array<{
         id: string;
         label: string;
@@ -161,6 +21,8 @@ interface ControlSectionProps {
         onClick: () => void;
     }>;
 }
+
+
 
 const ControlSection: React.FC<ControlSectionProps> = ({ 
     numericalControls = [], 

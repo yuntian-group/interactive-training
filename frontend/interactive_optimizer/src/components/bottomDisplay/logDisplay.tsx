@@ -3,14 +3,20 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { useAppSelector } from "../../hooks/userTypedHooks";
 import "xterm/css/xterm.css";
+import TerminalHistoryManager from "../../features/terminalHistory/terminalHistoryManager";
 
 const LogDisplay: React.FC<{ className?: string }> = ({}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const historyLoadedRef = useRef<boolean>(false);
 
   const curLog = useAppSelector((state) => state.trainLogData.curLog);
-  const curLogVersion = useAppSelector((state => state.trainLogData.localLogVersion));
+  const curLogVersion = useAppSelector(
+    (state) => state.trainLogData.localLogVersion
+  );
+
+  const terminalHistoryManager = TerminalHistoryManager.getInstance();
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -36,12 +42,19 @@ const LogDisplay: React.FC<{ className?: string }> = ({}) => {
         (fitAddon as any).proposeDimensions?.() && fitAddon.fit();
       } catch {
         /* swallow */
+        console.warn("Error fitting terminal on initial load");
       }
     });
 
-    terminal.write("Welcome to Interactive Trainer\r\n");
+    terminal.writeln("Welcome to Interactive Trainer");
     terminalRef.current = terminal;
     fitAddonRef.current = fitAddon;
+    const historyLength = terminalHistoryManager.history.length
+    terminalHistoryManager.history.slice(0, historyLength - 1).forEach((message) => {
+      terminal.writeln(message);
+    });
+    terminal.scrollToBottom();
+    historyLoadedRef.current = true;
 
     // Resize observer
     let resizeTimer: number;
@@ -74,7 +87,7 @@ const LogDisplay: React.FC<{ className?: string }> = ({}) => {
   }, []);
 
   useEffect(() => {
-    if (terminalRef.current) {
+    if (terminalRef.current && historyLoadedRef.current && curLog) {
       // append each incoming line rather than clearing
       terminalRef.current.writeln(curLog);
       terminalRef.current.scrollToBottom();

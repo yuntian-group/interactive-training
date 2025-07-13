@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://127.0.0.1:9876",
+  baseURL: "http://127.0.0.1:7007",
   timeout: 10000,
   headers: {
     "Access-Control-Allow-Origin": "*",
@@ -9,7 +9,7 @@ const api = axios.create({
   },
 });
 
-export const websocketHost = "ws://localhost:9876/ws/message/";
+export const websocketHost = "ws://localhost:7007/ws/message/";
 
 export const getTrainingState = async () => {
   try {
@@ -41,6 +41,15 @@ export const getCheckpointInfo = async () => {
 export const getModelInfo = async () => {
   try {
     const response = await api.get("/api/get_model_info/");
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getDatasetInfo = async () => {
+  try {
+    const response = await api.get("/api/get_dataset_info/");
     return response;
   } catch (error) {
     throw error;

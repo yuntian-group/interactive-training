@@ -9,6 +9,7 @@ import { getTrainLogDataFromServer } from "./features/trainLogData/action";
 import { getTrainInfoForInitializaiton } from "./features/trainInfo/actions";
 import { getOptimizerStateFromServer } from "./features/optimizerState/action";
 import { getCheckpointStateFromServer } from "./features/checkpointState/action";
+import { getDatasetInfoFromServer } from "./features/datasetInfo/action";
 
 
 import {
@@ -109,6 +110,7 @@ function App() {
       dispatch(getOptimizerStateFromServer());
       dispatch(getCheckpointStateFromServer());
       dispatch(getTrainLogDataFromServer());
+      dispatch(getDatasetInfoFromServer());
       dispatch(connectWebSocket(websocketHost));
       hasConnectedRef.current = true;
     }

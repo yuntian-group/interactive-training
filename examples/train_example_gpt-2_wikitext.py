@@ -1,25 +1,25 @@
 import wandb
-import torch
+import argparse
 from datasets import load_dataset
 from transformers import (
     Trainer,
     AutoConfig,
     AutoTokenizer,
     TrainingArguments,
-    AutoModelForCausalLM,
+    GPT2LMHeadModel,
     DataCollatorForLanguageModeling,
-    get_constant_schedule,
 )
 
-from src import make_interactive
+from interactive_training import make_interactive
 
 
-def main():
+def main(args):
     model_name = "openai-community/gpt2"
     data_name = "wikitext"
     data_part = "wikitext-2-raw-v1"
-    wandb.init(project="interactive-trainer-wikitext-llm-as-tuner")
-    model = AutoModelForCausalLM.from_pretrained(model_name)
+    wandb.init(project="interactive-trainer-wikitext")
+    config = AutoConfig.from_pretrained(model_name)
+    model = GPT2LMHeadModel(config=config)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer, mlm=False, pad_to_multiple_of=8
@@ -31,16 +31,15 @@ def main():
         per_device_train_batch_size=16,
         per_device_eval_batch_size=16,
         gradient_accumulation_steps=1,
-        num_train_epochs=2,
-        learning_rate=5e-3,
-        lr_scheduler_type="constant",
+        num_train_epochs=5,
+        learning_rate=args.lr,
         logging_steps=10,
-        save_steps=500,
-        eval_steps=100,
+        save_steps=1000,
+        eval_steps=1000,
         eval_strategy="steps",
         fp16=True,
         report_to="wandb",
-        eval_on_start=True,
+        eval_on_start=False,
     )
 
     train_data = load_dataset(data_name, data_part, split="train")
@@ -58,9 +57,9 @@ def main():
         tokenize_function, batched=True, remove_columns=["text"]
     )
 
-    interactive_trainer_cls = make_interactive(Trainer)
+    InteractiveTrainer = make_interactive(Trainer)
 
-    trainer = interactive_trainer_cls(
+    trainer = InteractiveTrainer(
         model=model,
         args=args,
         train_dataset=train_data,
@@ -68,9 +67,13 @@ def main():
         tokenizer=tokenizer,
         data_collator=collator,
     )
-
     trainer.train()
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Train GPT-2 on WikiText-2")
+    parser.add_argument(
+        "--lr", type=float, default=1e-4, help="Learning rate for training"
+    )
+    args = parser.parse_args()
+    main(args)
