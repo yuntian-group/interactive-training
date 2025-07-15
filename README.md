@@ -182,12 +182,21 @@ if __name__ == "__main__":
 
 ## 🖥️ Interactive Dashboard
 
-Start your training script, then open the interactive dashboard:
+Start your training script, you may see:
+
+```bash
+INFO:     Started server process [1755315]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:7007 (Press CTRL+C to quit)
+```
+
+Then open the interactive dashboard in browser:
 
 ```bash
 # Your training script will automatically start the control server
 # Open your browser and navigate to:
-http://localhost:7007
+http://127.0.0.1:7007
 ```
 
 The dashboard provides:
