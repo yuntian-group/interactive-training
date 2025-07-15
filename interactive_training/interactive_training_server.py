@@ -47,6 +47,7 @@ class InteractiveServerState:
     optimizer_states: Dict[str, float] = field(default_factory=dict)
     start_time: float = 0.0
     status: str = "init"
+    run_name: str = ""
 
 
 @dataclass
@@ -392,6 +393,7 @@ class InteractiveServer:
                 )
                 self._train_state.start_time = train_state.get("start_time", 0.0)
                 self._train_state.status = "running"
+                self._train_state.run_name = train_state.get("run_name", "")
 
             elif event["command"] == UPDATE_OPTIMIZER:
                 optimizer_info = json.loads(event.get("args", "{}"))
@@ -462,7 +464,7 @@ class InteractiveServer:
         #         }
 
         @self.app.get("/api/get_info/")
-        async def train_state():
+        async def get_train_state():
             """
             HTTP GET endpoint to retrieve the current training state.
             Returns a JSON representation of the InteractiveServerState.
@@ -471,6 +473,7 @@ class InteractiveServer:
                 return {
                     "start_time": self._train_state.start_time,
                     "status": self._train_state.status,
+                    "run_name": self._train_state.run_name,
                 }
 
         @self.app.get("/api/get_dataset_info/")

@@ -96,7 +96,6 @@ class ExampleDataset(Dataset):
         return self.num_samples
 
     def __getitem__(self, idx):
-        print(self.test_params)
         r = random.random()
         cum_prob = 0.0
         for ds_idx, prob in enumerate(self.sampling_probabilities):
@@ -159,7 +158,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train with mixed datasets")
     parser.add_argument(
-        "--lr", type=float, default=1e-4, help="Learning rate for training"
+        "--lr", type=float, default=1e-5, help="Learning rate for training"
     )
     args = parser.parse_args()
     main(args)

@@ -15,10 +15,27 @@ export const getOptimizerStateFromServer = createAsyncThunk(
         return rejectWithValue("Invalid optimizer data format");
       }
 
-      const ret: Record<string, { name: string; value: number }> = {};
+      const ret: Record<
+        string,
+        { name: string; value: number | boolean | string | number[] | string[] }
+      > = {};
       for (const [key, value] of Object.entries(optimizer_data_dict)) {
         if (typeof value === "number") {
           ret[key] = { name: key, value };
+        } else if (typeof value === "string") {
+          ret[key] = { name: key, value: value };
+        } else if (typeof value === "boolean") {
+          ret[key] = { name: key, value: value };
+        } else if (
+          Array.isArray(value) &&
+          value.every((item) => typeof item === "number")
+        ) {
+          ret[key] = { name: key, value: value as number[] };
+        } else if (
+          Array.isArray(value) &&
+          value.every((item) => typeof item === "string")
+        ) {
+          ret[key] = { name: key, value: value as string[] };
         } else {
           console.error(`Invalid value for ${key}:`, value);
         }

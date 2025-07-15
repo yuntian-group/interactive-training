@@ -49,10 +49,12 @@ const LogDisplay: React.FC<{ className?: string }> = ({}) => {
     terminal.writeln("Welcome to Interactive Trainer");
     terminalRef.current = terminal;
     fitAddonRef.current = fitAddon;
-    const historyLength = terminalHistoryManager.history.length
-    terminalHistoryManager.history.slice(0, historyLength - 1).forEach((message) => {
-      terminal.writeln(message);
-    });
+    const historyLength = terminalHistoryManager.history.length;
+    terminalHistoryManager.history
+      .slice(0, historyLength - 1)
+      .forEach((message) => {
+        terminal.writeln(message);
+      });
     terminal.scrollToBottom();
     historyLoadedRef.current = true;
 
@@ -101,7 +103,7 @@ const LogDisplay: React.FC<{ className?: string }> = ({}) => {
         width: "100%",
         height: "100%",
         minWidth: 0,
-        minHeight: 0,
+        minHeight: 0
       }}
     />
   );

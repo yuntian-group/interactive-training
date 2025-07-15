@@ -5,6 +5,7 @@ import type { ModelDataNode, ModelInfoState } from "./type";
 const initTree: ModelDataNode = {
   name: "",
   operators: [],
+  hyperparameters: [],
   children: [],
   moduleType: "Unknown", // Default module type
 };

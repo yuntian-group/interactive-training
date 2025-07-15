@@ -13,6 +13,7 @@ const parseModelTreeInit = (
     const nodeData = {
       name: node.name || "",
       operators: node.operators || [],
+      hyperparameters: node.hyperparameters || [], // Ensure hyperparameters are included
       // explicitly pass moduleMap so it stays in scope
       children: (node.children || []).map((child: Record<string, any>) =>
         parseNode(child, moduleMap)

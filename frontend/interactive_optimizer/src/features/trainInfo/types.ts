@@ -1,6 +1,7 @@
 export interface TrainInfoData {
-  start_time: number;
+  startTime: number;
   status: string;
+  runName: string;
 }
 
 export default interface trainInfoState {

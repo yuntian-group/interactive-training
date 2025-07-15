@@ -82,7 +82,7 @@ const BottomBar: React.FC<{ className?: string }> = ({ className }) => {
           <ModelLayerControl className="h-full overflow-auto p-4" />
         )}
         {activeTab === "LOG" && (
-          <LogDisplay className="h-full overflow-auto p-4" />
+          <LogDisplay className="h-full" />
         )}
       </div>
     </div>

@@ -7,6 +7,7 @@ import { appendNewDataPoint } from "../trainLogData/logBuffers";
 import { WebSocketActionTypes, type WebSocketActions } from "./types";
 import { getCheckpointStateFromServer } from "../checkpointState/action";
 import TermnialHistoryManager from "../terminalHistory/terminalHistoryManager";
+import { updateOptimizerReducer } from "../optimizerState/reducer";
 
 let socket: WebSocket | null = null;
 
@@ -79,6 +80,9 @@ export const websocketMiddleware: Middleware =
             // store.dispatch(updateCommandStatus(msgTrainCommandData));
             if (msg.status === "success") {
               switch (msg.command) {
+                case "update_optimizer":
+                  store.dispatch(updateOptimizerReducer(msgTrainCommandData));
+                  break;
                 case "checkpoint_info_update":
                   store.dispatch(getCheckpointStateFromServer() as any);
                   break;
@@ -89,6 +93,10 @@ export const websocketMiddleware: Middleware =
                     type: "trainLogData/fork",
                     payload: branchInfo,
                   });
+                  break;
+                case "update_dataset_runtime_hyperparameters":
+                  break;
+                case "update_dataset":
                   break;
                 case "pause_training":
                   store.dispatch({

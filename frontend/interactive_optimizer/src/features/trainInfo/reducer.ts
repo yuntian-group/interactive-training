@@ -5,8 +5,9 @@ import type { TrainInfoData } from "./types";
 
 const initialState: trainInfoState = {
   trainInfo: {
-    start_time: 0,
+    startTime: 0,
     status: "init",
+    runName: "",
   },
   loading: false,
   error: null,

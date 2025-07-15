@@ -1,12 +1,19 @@
 import clsx from "clsx";
+import { v4 as uuidv4 } from "uuid";
 import React, { useState } from "react";
-import { useAppSelector } from "../../hooks/userTypedHooks";
-import { NumericalInputControl, ListInputControl} from "../sharedControl/sharedControl";
+import { useAppSelector, useAppDispatch } from "../../hooks/userTypedHooks";
+import {
+  NumericalInputControl,
+  ListInputControl,
+} from "../sharedControl/sharedControl";
+
+import { postTrainCommand } from "../../features/trainCommand/actions";
+import type { TrainCommandData } from "../../features/trainCommand/types";
 
 const DatasetInfoDisplay: React.FC<{ className?: string }> = ({
   className,
 }) => {
-
+  const dispatch = useAppDispatch();
   const isTraining = useAppSelector(
     (state) => state.trainInfo.trainInfo.status === "running"
   );
@@ -22,9 +29,11 @@ const DatasetInfoDisplay: React.FC<{ className?: string }> = ({
     ? datasetInfo.interactive_parameters
     : null;
 
-  
-    const [ localInteractiveParameters, setLocalInteractiveParameters ] = useState(interactiveParameters || {});
-    const [ localInitializationParameters, setLocalInitializationParameters ] = useState(initializationParameters || {});
+  const [localInteractiveParameters, setLocalInteractiveParameters] = useState(
+    interactiveParameters || {}
+  );
+  const [localInitializationParameters, setLocalInitializationParameters] =
+    useState(initializationParameters || {});
 
   const notRunningInfo = () => {
     return (
@@ -40,52 +49,69 @@ const DatasetInfoDisplay: React.FC<{ className?: string }> = ({
     );
   };
 
-  const renderParameters = (params: Record<string, any>) => {
+  const renderParameters = (
+    params: Record<string, any>,
+    updateLocalParameters: (params: Record<string, any>) => void
+  ) => {
     if (!params || Object.keys(params).length === 0) {
       return (
         <p className="text-gray-500 p-4 text-sm">No parameters available.</p>
       );
     } else {
       return Object.entries(params).map(([key, value]) => {
-              if (Array.isArray(value)) {
-        return (
-          <ListInputControl
-            key={key}
-            id={key + "-input"}
-            label={key}
-            value={value}
-            onChange={(newValue) => {
-              console.log(`Updated ${key} to ${newValue}`);
-            }}
-            className="text-gray-600 bg-white p-2"
-          />
-        );
-      } else if (typeof value === 'number') {
-        return (
-          <NumericalInputControl
-            key={key}
-            id={key + "-input"}
-            label={key}
-            value={value}
-            onChange={(newValue) => {
-              console.log(`Updated ${key} to ${newValue}`);
-            }}
-            className="text-gray-600 bg-white p-2"
-          />
-        );
-      } else {
-        return (
-          <div key={key} className="flex items-center space-x-2 bg-white p-2">
-            <span className="font-medium text-gray-700">{key}:</span>
-            <span className="text-gray-600">{JSON.stringify(value)}</span>
-          </div>
-        );
-      }
+        if (Array.isArray(value)) {
+          return (
+            <ListInputControl
+              key={key}
+              id={key + "-input"}
+              label={key}
+              value={value}
+              onChange={(newValue) => {
+                console.log(`Updated ${key} to ${newValue}`);
+                const updatedParams = {
+                  [key]: newValue,
+                };
+                updateLocalParameters(updatedParams);
+                console.log(
+                  "Updated local interactive parameters:",
+                  updatedParams
+                );
+              }}
+              className="text-gray-600 bg-white p-2"
+            />
+          );
+        } else if (typeof value === "number") {
+          return (
+            <NumericalInputControl
+              key={key}
+              id={key + "-input"}
+              label={key}
+              value={value}
+              onChange={(newValue) => {
+                console.log(`Updated 1 ${key} to ${newValue}`);
+                const updatedParams = {
+                  [key]: newValue,
+                };
+                updateLocalParameters(updatedParams);
+              }}
+              className="text-gray-600 bg-white p-2"
+            />
+          );
+        } else {
+          return (
+            <div key={key} className="flex items-center space-x-2 bg-white p-2">
+              <span className="font-medium text-gray-700">{key}:</span>
+              <span className="text-gray-600">{JSON.stringify(value)}</span>
+            </div>
+          );
+        }
       });
     }
   };
 
-  const displayInitializationParameters = () => {
+  const displayInitializationParameters = (
+    updateLocalInitializationParameters: (params: Record<string, any>) => void
+  ) => {
     if (
       initializationParameters === null ||
       Object.keys(initializationParameters).length === 0
@@ -96,10 +122,15 @@ const DatasetInfoDisplay: React.FC<{ className?: string }> = ({
         </p>
       );
     }
-    return renderParameters(initializationParameters);
+    return renderParameters(
+      initializationParameters,
+      updateLocalInitializationParameters
+    );
   };
 
-  const displayInteractiveParameters = () => {
+  const displayInteractiveParameters = (
+    updateLocalInteractiveParameters: (params: Record<string, any>) => void
+  ) => {
     if (
       interactiveParameters === null ||
       Object.keys(interactiveParameters).length === 0
@@ -110,9 +141,54 @@ const DatasetInfoDisplay: React.FC<{ className?: string }> = ({
         </p>
       );
     }
-    return renderParameters(interactiveParameters);
+    return renderParameters(
+      interactiveParameters,
+      updateLocalInteractiveParameters
+    );
   };
 
+  const updateLocalInteractiveParameters = (params: Record<string, any>) => {
+    setLocalInteractiveParameters(() => ({
+      ...localInteractiveParameters,
+      ...params,
+    }));
+  };
+
+  const updateLocalInitializationParameters = (params: Record<string, any>) => {
+    setLocalInitializationParameters(() => ({
+      ...localInitializationParameters,
+      ...params,
+    }));
+  };
+
+  const computeDiffAndDispatchCommand = (
+    command: string,
+    newState: Record<string, any>,
+    oldState: Record<string, any>
+  ) => {
+    const paramsUpdated: Record<string, any> = {};
+    for (const key in newState) {
+      if (newState[key] !== oldState[key]) {
+        paramsUpdated[key] = newState[key];
+      }
+    }
+
+    if (Object.keys(paramsUpdated).length === 0) {
+      console.log("No parameters updated, skipping command dispatch.");
+      return;
+    }
+
+    console.log(`Dispatching command: ${command} with params:`, paramsUpdated);
+
+    const trainCommand = {
+      command: command,
+      args: JSON.stringify(paramsUpdated),
+      status: "requested",
+      uuid: uuidv4(),
+      time: Date.now(),
+    } as TrainCommandData;
+    dispatch(postTrainCommand(trainCommand));
+  };
 
   const datasetInfoDisplayAndControls = () => {
     if (!datasetInfo) {
@@ -126,9 +202,16 @@ const DatasetInfoDisplay: React.FC<{ className?: string }> = ({
             Interactive Parameters
           </div>
           <div className="interactive-params bg-gray-100 p-4 space-y-2">
-            {displayInteractiveParameters()}
+            {displayInteractiveParameters(updateLocalInteractiveParameters)}
             <div className="flex justify-end">
               <button
+                onClick={() =>
+                  computeDiffAndDispatchCommand(
+                    "update_dataset_runtime_hyperparameters",
+                    localInteractiveParameters,
+                    interactiveParameters || {}
+                  )
+                }
                 className="px-3 py-1 bg-gray-600 text-white text-xs hover:bg-gray-700 transition-colors"
               >
                 Apply
@@ -141,9 +224,18 @@ const DatasetInfoDisplay: React.FC<{ className?: string }> = ({
             Initialization Parameters
           </div>
           <div className="initialization-params bg-gray-100 p-4 space-y-2">
-            {displayInitializationParameters()}
+            {displayInitializationParameters(
+              updateLocalInitializationParameters
+            )}
             <div className="flex justify-end">
               <button
+                onClick={() =>
+                  computeDiffAndDispatchCommand(
+                    "update_dataset",
+                    localInitializationParameters,
+                    initializationParameters || {}
+                  )
+                }
                 className="px-3 py-1 bg-gray-600 text-white text-xs hover:bg-gray-700 transition-colors"
               >
                 Apply

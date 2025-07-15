@@ -16,7 +16,12 @@ export const getTrainInfoForInitializaiton = createAsyncThunk(
         const response = await getTrainingState();
         if (response && response.data) {
           console.log("Received training state:", response.data);
-          dispatch(updateTrainInfo(response.data as TrainInfoData));
+          const trainInfo: TrainInfoData = {
+            startTime: response.data.start_time,
+            status: response.data.status,
+            runName: response.data.run_name || "",
+          } as TrainInfoData;
+          dispatch(updateTrainInfo(trainInfo));
           console.log("Training state fetched successfully:", response.data);
           if (response.data.status === "running") {
             console.log("Training is running, proceeding with initialization.");

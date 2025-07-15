@@ -2,29 +2,10 @@ from datasets import IterableDataset
 from torch.utils.data import Dataset
 from transformers.utils import logging
 from typing import Generic, TypeVar, List, Dict
+from interactive_training.constants import RESERVED_NAMES, BASIC_TYPES, TYPE_MAPPING
 
 DatasetType = TypeVar("TrainerType", Dataset, IterableDataset)
 
-TYPE_MAPPING = {
-    "int": int,
-    "float": float,
-    "str": str,
-    "bool": bool,
-    "list": list,
-    "dict": dict,
-    "tuple": tuple,
-    "set": set,
-}
-
-BASIC_TYPES = (int, float, str, bool)
-NESTED_TYPES = (list, dict, tuple, set)
-RESERVED_NAMES = {
-    "_cmd_queue",
-    "_control_queue",
-    "_interactive_parameter_names",
-    "_interactive_parameters",
-    "_dataset_kwargs",
-}
 
 logger = logging.get_logger(__name__)
 

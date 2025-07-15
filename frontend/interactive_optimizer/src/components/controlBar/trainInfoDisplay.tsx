@@ -55,11 +55,11 @@ const TrainInfoDisplay: React.FC<{
         <div className="space-y-4 p-4">
           <div className="space-y-2">
             <p>
-              <strong>Run Name:</strong> {"TEST NAME"}
+              <strong>Run Name:</strong> {trainInfo.runName || "N/A"}
             </p>
             <p>
               <strong>Start Time:</strong>{" "}
-              {new Date(trainInfo.start_time * 1000).toLocaleString()}
+              {new Date(trainInfo.startTime * 1000).toLocaleString()}
             </p>
             <p>
               <strong>Status:</strong> {trainInfo.status}

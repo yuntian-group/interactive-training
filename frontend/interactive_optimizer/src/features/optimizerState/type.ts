@@ -1,6 +1,6 @@
 export interface OptimizerData {
   name: string;
-  value: number;
+  value: number | boolean | string | number[] | string[];
 }
 
 export default interface optimizerState {

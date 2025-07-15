@@ -24,7 +24,7 @@ const SingleCheckpointDisplay: React.FC<{
 
   return (
     <>
-      <div className="checkpoint-display p-2 border rounded-none bg-gray-50 flex-shrink-0">
+      <div className="checkpoint-display p-2 border border-gray-200 rounded-none bg-gray-50 flex-shrink-0">
         <h3 className="font-semibold text-sm">{checkpoint.checkpoint_dir}</h3>
         <p className="text-xs text-gray-600">
           Created at: {new Date(checkpoint.time * 1000).toLocaleString()}
@@ -35,7 +35,7 @@ const SingleCheckpointDisplay: React.FC<{
         <button
           onClick={() => setShowPopup(true)}
           className={clsx(
-            "mt-1 px-2 py-1 text-xs focus:outline-none transition-colors duration-200 bg-blue-500 hover:bg-blue-600 text-white"
+            "mt-1 px-2 py-1 text-xs focus:outline-none transition-colors duration-200 bg-gray-600 hover:bg-gray-700 text-white"
           )}
         >
           Load Checkpoint
