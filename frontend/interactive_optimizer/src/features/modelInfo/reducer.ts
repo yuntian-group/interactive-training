@@ -22,7 +22,6 @@ const modelInfoStateSlice = createSlice({
   initialState,
   reducers: {
     selectLayer: (state, action: PayloadAction<string>) => {
-      console.log("Reducer Selecting layer:", action.payload);
       state.selectedLayer = action.payload; // Update the selected layer in the state
     },
   },

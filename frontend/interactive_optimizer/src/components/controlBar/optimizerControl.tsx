@@ -85,13 +85,12 @@ const OptimizerControl: React.FC<Props> = ({ className }: Props) => {
                 min={0}
                 max={1e-3}
                 onChange={(newValue) => {
-                  console.log(`Updated ${param.name} to ${newValue}`);
+  
                   const updatedParams = {
                     ...localOptimizerState,
                     [key]: { ...param, value: newValue },
                   };
                   setLocalOptimizerState(updatedParams);
-                  console.log("Updated local optimizer state:", updatedParams);
                 }}
                 className="text-black p-4 text-bold"
               />
@@ -102,13 +101,11 @@ const OptimizerControl: React.FC<Props> = ({ className }: Props) => {
                 label={param.name}
                 value={param.value}
                 onChange={(newValue) => {
-                  console.log(`Updated ${param.name} to ${newValue}`);
                   const updatedParams = {
                     ...localOptimizerState,
                     [key]: { ...param, value: newValue },
                   };
                   setLocalOptimizerState(updatedParams);
-                  console.log("Updated local optimizer state:", updatedParams);
                 }}
                 className="text-black p-2"
               />
@@ -119,12 +116,10 @@ const OptimizerControl: React.FC<Props> = ({ className }: Props) => {
                 label={param.name}
                 value={param.value as number[]}
                 onChange={(newValue) => {
-                  console.log(`Updated ${param.name} to ${newValue}`);
                   const updatedParams = {
                     ...localOptimizerState,
                     [key]: { ...param, value: newValue },
                   };
-                  console.log("Updated local optimizer state:", updatedParams);
                   setLocalOptimizerState(updatedParams);
                 }}
                 className="text-black p-2"
@@ -155,7 +150,6 @@ const OptimizerControl: React.FC<Props> = ({ className }: Props) => {
         <button
           className="w-full bg-gray-600 text-white py-2 px-6 font-semibold hover:bg-gray-700 transition-colors duration-200 border-gray-300 mt-8"
           onClick={() => {
-            console.log("Committing optimizer state:", localOptimizerState);
             handleOptimizerUpdateApply(
               localOptimizerState,
               optimizerStateServer

@@ -7,6 +7,10 @@
 
 Interactive Training is an open-source framework that enables real-time, feedback-driven intervention during neural network training. Unlike traditional static training approaches, Interactive Training allows human experts or automated AI agents to dynamically adjust optimizer parameters, training data, and model checkpoints while training is in progress.
 
+## 🖼 Preview
+
+<img src="figs/preview.png" alt="Demo Screenshot" width="600"/>
+
 ## 🎮 Try the Interactive Demo
 
 Play our interactive game at [**interactivetraining.ai**](https://interactivetraining.ai/) experience the power of dynamic optimization control.
@@ -16,7 +20,7 @@ Play our interactive game at [**interactivetraining.ai**](https://interactivetra
 - **Real-time Interventions**: Dynamically adjust learning rates, optimizer parameters, and training configurations during training
 - **Interactive Dashboard**: React-based frontend for visualizing training metrics and sending control commands
 - **Checkpoint Management**: Save, load, and branch training trajectories with full history tracking
-- **AI Agent Support**: Enable LLM-based agents to automatically optimize training parameters
+- **LLM-based Tuning**: Enable LLM-based agents to automatically optimize training parameters
 - **Easy Integration**: Minimal code changes required - just wrap your existing Hugging Face Trainer
 - **Branching Support**: Create and manage multiple training branches from any checkpoint
 - **WebSocket Communication**: Real-time bidirectional communication between training process and dashboard
@@ -94,63 +98,86 @@ trainer.train()  # Training is now fully interactive!
 ### Complete Example
 
 ```python
-import torch
+import wandb
+import argparse
 from datasets import load_dataset
 from transformers import (
+    Trainer,
+    AutoConfig,
     AutoTokenizer,
-    AutoModelForCausalLM,
     TrainingArguments,
+    GPT2LMHeadModel,
     DataCollatorForLanguageModeling,
 )
-from interactive_training import make_interactive, Trainer
 
-def main():
-    # Load model and tokenizer
+from interactive_training import make_interactive
+
+
+def main(args):
     model_name = "openai-community/gpt2"
-    model = AutoModelForCausalLM.from_pretrained(model_name)
+    data_name = "wikitext"
+    data_part = "wikitext-2-raw-v1"
+    wandb.init(project="interactive-trainer-wikitext")
+    config = AutoConfig.from_pretrained(model_name)
+    model = GPT2LMHeadModel(config=config)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
+    collator = DataCollatorForLanguageModeling(
+        tokenizer=tokenizer, mlm=False, pad_to_multiple_of=8
+    )
     tokenizer.pad_token = tokenizer.eos_token
-
-    # Prepare dataset
-    dataset = load_dataset("wikitext", "wikitext-2-raw-v1", split="train")
-    
-    def tokenize_function(examples):
-        return tokenizer(
-            examples["text"], 
-            truncation=True, 
-            max_length=1024, 
-            padding="longest"
-        )
-    
-    tokenized_dataset = dataset.map(tokenize_function, batched=True)
-    
-    # Training arguments
-    training_args = TrainingArguments(
-        output_dir="./results",
+    tokenizer.padding_side = "left"
+    args = TrainingArguments(
+        output_dir="./wikitext2",
         per_device_train_batch_size=16,
-        num_train_epochs=3,
-        learning_rate=2e-4,
+        per_device_eval_batch_size=16,
+        gradient_accumulation_steps=1,
+        num_train_epochs=5,
+        learning_rate=args.lr,
         logging_steps=10,
         save_steps=1000,
         eval_steps=1000,
-        evaluation_strategy="steps",
+        eval_strategy="steps",
+        fp16=True,
+        report_to="wandb",
+        eval_on_start=False,
     )
-    
-    # Create interactive trainer
+
+    train_data = load_dataset(data_name, data_part, split="train")
+    eval_data = load_dataset(data_name, data_part, split="validation")
+
+    def tokenize_function(examples):
+        return tokenizer(
+            examples["text"], truncation=True, max_length=1024, padding="longest"
+        )
+
+    train_data = train_data.filter(lambda x: len(x["text"]) > 0).map(
+        tokenize_function, batched=True, remove_columns=["text"]
+    )
+    eval_data = eval_data.filter(lambda x: len(x["text"]) > 0).map(
+        tokenize_function, batched=True, remove_columns=["text"]
+    )
+
     InteractiveTrainer = make_interactive(Trainer)
+
     trainer = InteractiveTrainer(
         model=model,
-        args=training_args,
-        train_dataset=tokenized_dataset,
+        args=args,
+        train_dataset=train_data,
+        eval_dataset=eval_data,
         tokenizer=tokenizer,
-        data_collator=DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False),
+        data_collator=collator,
     )
-    
-    # Start training - now interactive!
     trainer.train()
 
+
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Train GPT-2 on WikiText-2")
+    parser.add_argument(
+        "--lr", type=float, default=1e-4, help="Learning rate for training"
+    )
+    args = parser.parse_args()
+    main(args)
+
 ```
 
 ## 🖥️ Interactive Dashboard
@@ -160,7 +187,7 @@ Start your training script, then open the interactive dashboard:
 ```bash
 # Your training script will automatically start the control server
 # Open your browser and navigate to:
-http://localhost:9876
+http://localhost:7007
 ```
 
 The dashboard provides:
@@ -169,30 +196,15 @@ The dashboard provides:
 - **Command history** and status tracking
 - **Branching visualization** for experiment management
 
-## 🤖 AI Agent Integration
+## 🤖 LLM-based tuning 
 
-Enable LLM-based agents to automatically optimize your training:
-
-```python
-# Example: LLM agent for learning rate optimization
-import openai
-from interactive_training.agents import LLMAgent
-
-agent = LLMAgent(
-    model="gpt-4",
-    api_key="your-api-key",
-    optimization_target="validation_loss"
-)
-
-# Agent will monitor training and suggest optimizations
-agent.monitor_training(trainer, intervention_frequency=10)
-```
+A simple LLM based tuning exampled is included in `examples/llm_as_tuner.py`
 
 ## 📚 API Reference
 
 ### Supported Commands
 
-| Command | Description | Parameters |
+| Command | Description | Parameters Example |
 |---------|-------------|------------|
 | `update_optimizer` | Modify optimizer parameters | `{"lr": 1e-4, "weight_decay": 0.01}` |
 | `save_checkpoint` | Save current training state | `{}` |
@@ -201,10 +213,15 @@ agent.monitor_training(trainer, intervention_frequency=10)
 | `resume_training` | Resume paused training | `{}` |
 | `stop_training` | Stop training entirely | `{}` |
 | `do_evaluate` | Trigger evaluation | `{}` |
+| `update_dataset` | Update dataset reload information | `{"data_source": ["openai/gsm8k", "juletxara/mgsm"]}` |
+| `update_dataset_runtime_hyperparameters` | Update dataset run time hyper-parameters | `{"sample_prob": [0.9, 0.1]}` |
+| `model_layer_operation` | Run a function associate with a layer | `{"layer_name": "bert.encoder.layer.0.attention.self.query", "operation_name": "reset_parameters", "params": {}}` |
+| `model_layer_parameter_update` | Update layer hyperparameter | `{"layer_name": "bert.embeddings.dropout", "param_name": "p", "value": 0.5}` |
 
 ### REST API Endpoints
 
 - `GET /api/get_info/` - Get current training state
+- `GET /api/get_dataset_info/` - Get current dataset initialization and run-time parameters
 - `GET /api/get_optimizer_info/` - Get optimizer parameters
 - `GET /api/get_model_info/` - Get model information
 - `GET /api/get_checkpoints/` - Get saved checkpoints
@@ -216,36 +233,40 @@ agent.monitor_training(trainer, intervention_frequency=10)
 
 ```
 interactive_training/
-├── src/                              # Core Python package
-│   ├── __init__.py                   # Main package interface
-│   ├── interactive_training_mixin.py # Interactive training mixin class
-│   ├── interactive_training_server.py # FastAPI control server
-│   ├── callbacks.py                  # Training callbacks for interventions
-│   └── constants.py                  # Command constants and types
-├── examples/                         # Example scripts and templates
-│   ├── train_wikitext-2_gpt2.py     # Basic training example
-│   ├── llm_as_tuner.py              # LLM agent example
-│   └── llm_prompt_template.md       # LLM agent prompt template
-├── frontend/                         # React-based dashboard
-│   └── interactive_optimizer/        # Frontend application
-│       ├── src/                      # React source code
-│       │   ├── components/           # UI components
-│       │   ├── features/             # Redux state management
-│       │   └── api/                  # API client
-│       └── package.json              # Frontend dependencies
-├── exp1_data/                        # Experimental data (human vs static)
-├── exp2_data/                        # Experimental data (LLM vs static)
-├── pyproject.toml                    # Python package configuration
-└── README.md                         # This file
+├── dist                            # Compiled Dashboard Files
+├── __init__.py                     # Main package interface
+├── interactive_dataset_mixin.py    # Interactive dataset mixin class
+├── interactive_training_mixin.py   # Interactive training mixin class
+├── interactive_training_server.py  # FastAPI control server
+├── callbacks.py                    # Training callbacks for interventions
+├── constants.py                    # Command constants and types
+├── examples/                       # Example scripts and templates
+│   ├── train_wikitext-2_gpt2.py    # Basic training example
+│   ├── llm_as_tuner.py             # LLM agent example
+│   └── llm_prompt_template.md      # LLM agent prompt template
+├── frontend/                       # React-based dashboard
+│   └── interactive_optimizer/      # Frontend application
+├── init.sh                         # Setting up environmental variable script 
+├── pyproject.toml                  # Python package configuration
+└── README.md                       # This file
 ```
 
 ### Key Files
 
 - **`src/interactive_training_mixin.py`**: Core mixin class that adds interactivity to Hugging Face Trainer
+- **`src/interactive_dataset_mixin.py`**: Core mixin class that adds interactivity to dataset classes
 - **`src/interactive_training_server.py`**: FastAPI server handling command/event routing
 - **`src/callbacks.py`**: Training callbacks for different intervention types
 - **`examples/train_wikitext-2_gpt2.py`**: Complete example showing basic usage
 - **`examples/llm_as_tuner.py`**: Example of LLM-based automated optimization
+
+## 📝 TODO 
+
+- [ ] Support distributed training
+- [ ] Better LLM agent support and integration
+- [ ] Add unit tests
+- [ ] Improve documentation
+- [ ] And more ...
 
 ## 🤝 Contributing
 

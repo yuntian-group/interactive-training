@@ -15,21 +15,18 @@ export const getTrainInfoForInitializaiton = createAsyncThunk(
       try {
         const response = await getTrainingState();
         if (response && response.data) {
-          console.log("Received training state:", response.data);
           const trainInfo: TrainInfoData = {
             startTime: response.data.start_time,
             status: response.data.status,
             runName: response.data.run_name || "",
           } as TrainInfoData;
           dispatch(updateTrainInfo(trainInfo));
-          console.log("Training state fetched successfully:", response.data);
           if (response.data.status === "running") {
-            console.log("Training is running, proceeding with initialization.");
             return true;
           }
         }
       } catch (error) {
-        console.log("Error fetching training state:", error);
+        console.error("Error fetching training state:", error);
       } finally {
         attempt++;
         await sleep(1000); // Wait 1 second before retrying

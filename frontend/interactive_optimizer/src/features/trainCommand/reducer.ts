@@ -36,7 +36,6 @@ const trainCommandSlice = createSlice({
       .addCase(postTrainCommand.fulfilled, (state, action) => {
         state.loading = false;
         state.response = action.payload;
-        console.log(state.response);
       })
       .addCase(postTrainCommand.rejected, (state, action) => {
         state.loading = false;

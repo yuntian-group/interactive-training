@@ -39,7 +39,6 @@ const displayTree = (node: ModelDataNode, dispatch: any): React.ReactNode => (
       </div>
     }
     onClick={(e) => {
-      console.log("Selected layer:", node.name);
       dispatch({
         type: "modelInfoState/selectLayer",
         payload: node.name,

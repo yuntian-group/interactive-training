@@ -7,9 +7,9 @@ import openai
 import requests
 import websocket
 
-HTTP_HOST = "http://localhost:9876"
+HTTP_HOST = "http://localhost:7007"
 INSTRUCTION_ENDPOINT = "/api/command/"
-WEBSOCKET_HOST = "ws://localhost:9876/ws/message/"
+WEBSOCKET_HOST = "ws://localhost:7007/ws/message/"
 
 PAUSE_REQUEST = {
     "command": "pause_training",

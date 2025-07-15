@@ -6,7 +6,6 @@ export const postTrainCommand = createAsyncThunk(
   "trainCommand/postTrainCommand",
   async (command: TrainCommandData, { rejectWithValue }) => {
     try {
-      console.log("Posting train command:", command);
       const response = await postCommand(JSON.stringify(command));
       return response.data;
     } catch (error) {

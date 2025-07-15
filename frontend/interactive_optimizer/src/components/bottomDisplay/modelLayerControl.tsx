@@ -57,7 +57,6 @@ const ControlSection: React.FC<ControlSectionProps> = ({
     paramName: string,
     value: any
   ) => {
-    console.log(`Updating layer ${layerName}, parameter ${paramName} to value ${value}`);
     // Post
     dispatch(postTrainCommand({
       command: "model_layer_parameter_update",
@@ -77,7 +76,6 @@ const ControlSection: React.FC<ControlSectionProps> = ({
     operationName: string,
     params: Record<string, any>
   ) => {
-    console.log(`Performing operation ${operationName} on layer ${layerName} with params`, params);
     dispatch(postTrainCommand({
       command: "model_layer_operation",
       args: JSON.stringify({

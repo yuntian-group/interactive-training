@@ -42,7 +42,6 @@ const trainLogDataSlice = createSlice({
         state.branchInfo,
         branchId
       ); // Update the display branch
-      console.log("Updated display branch:", state.displayBranch);
     },
     bumpLocalDataVersion: (state) => {
       state.localDataVersion += 1; // Increment the local data version
@@ -64,7 +63,6 @@ const trainLogDataSlice = createSlice({
       getTrainLogDataFromServer.fulfilled,
       (state, action: PayloadAction<TrainLogData>) => {
         const data = action.payload;
-        console.log("Received train log data:", data);
         state.branchTree = data.branchTree;
         state.branchInfo = data.branchInfo;
         state.currentBranch = data.currentBranch;

@@ -83,9 +83,9 @@ function App() {
 
   useEffect(() => {
     // If the bottom display is active, set the height to 50% of the viewport height
-    console.log(
-      "Setting bottom display height based on local storage or threshold height."
-    );
+    // console.log(
+    //   "Setting bottom display height based on local storage or threshold height."
+    // );
     if (!mainDisplayRef.current) {
       return;
     }
@@ -103,9 +103,9 @@ function App() {
   useEffect(() => {
     // Trigger only once when the training starts for the first time
     if (trainInfoStatus === "running" && !hasConnectedRef.current) {
-      console.log(
-        "Training started, initializing data fetch and WebSocket connection."
-      );
+      // console.log(
+      //   "Training started, initializing data fetch and WebSocket connection."
+      // );
       dispatch(getModelInfoFromServer());
       dispatch(getOptimizerStateFromServer());
       dispatch(getCheckpointStateFromServer());

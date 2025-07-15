@@ -30,8 +30,6 @@ export const computeDisplayBranch = (
   } else {
     const siblings = branchTree[currentBranchParent] || [];
 
-    console.log(`Siblings of current branch "${currentBranch}":`, siblings);
-
     for (const sibling of siblings) {
       if (sibling !== currentBranch) {
         displayBranch.push(sibling);

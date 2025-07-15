@@ -35,7 +35,6 @@ export const getModelInfoFromServer = createAsyncThunk<
     const response = await getModelInfo();
     const moduleTree = response.data;
     const moduleDict: Record<string, ModelDataNode> = {};
-    console.log("Fetched model data:", moduleTree);
     // Transform the module_tree to match ModelDataNode structure
     try {
       if (!moduleTree || typeof moduleTree !== "object") {

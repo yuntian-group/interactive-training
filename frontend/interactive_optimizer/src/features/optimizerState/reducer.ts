@@ -19,7 +19,6 @@ const optimizerStateSlice = createSlice({
       state,
       action: PayloadAction<TrainCommandData>
     ) => {
-      console.log("Updating optimizer state with action:", action);
       const result: TrainCommandData = action.payload;
       if (result.status === "success") {
         const updateDict = JSON.parse(result.args);

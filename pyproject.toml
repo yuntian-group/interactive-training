@@ -25,8 +25,7 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["src"]  # Look for packages in the src directory
+where = ["interactive_training"]  # Look for packages in the src directory
 
-[tool.setuptools.package-data]
-# This is the key part: include all files within the 'frontend' directory
-"my_project_name" = ["frontend/**/*"]
+[tool.setuptools]
+package-dir = { "" = "interactive_training" }  # Set the root package directory

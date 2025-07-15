@@ -7,9 +7,6 @@ export const getOptimizerStateFromServer = createAsyncThunk(
     try {
       const response = await getOptimizerState();
       const optimizer_data_dict = response.data;
-
-      console.log("Fetched optimizer data:", optimizer_data_dict);
-
       if (optimizer_data_dict === null) {
         console.error("Invalid optimizer data format:", optimizer_data_dict);
         return rejectWithValue("Invalid optimizer data format");

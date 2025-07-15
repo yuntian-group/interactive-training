@@ -30,7 +30,6 @@ export const getCheckpointStateFromServer = createAsyncThunk(
           } as CheckpointData;
         })
         .filter((item: CheckpointData | null) => item !== null); // Filter out any null items
-      console.log("Fetched checkpoint data:", checkpoint_data_list);
       return checkpoint_data_list;
     } catch (error) {
       console.error("Error fetching training state:", error);

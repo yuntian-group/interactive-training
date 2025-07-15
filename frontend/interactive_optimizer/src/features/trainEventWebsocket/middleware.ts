@@ -116,8 +116,6 @@ export const websocketMiddleware: Middleware =
               }
             }
           }
-
-          console.log("Received WebSocket message:", msg);
         };
 
         socket.onerror = (error) => {

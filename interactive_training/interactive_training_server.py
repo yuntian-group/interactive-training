@@ -10,9 +10,8 @@ from uvicorn import Config, Server
 from dataclasses import dataclass, field
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from fastapi.exceptions import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, APIRouter
 from interactive_training.constants import (
     CMD_SUCCESS,
     COMMAND_TO_TYPE,
@@ -97,6 +96,7 @@ class InteractiveServer:
         port: int,
         timeout: int = 10,
     ):
+
         self.app = FastAPI()
 
         self.app.add_middleware(
@@ -443,27 +443,11 @@ class InteractiveServer:
         return serialized_logs
 
     def _setup_routes(self):
-        # if os.path.exists(FRONTEND_DIST):
-        #     self.app.mount(
-        #         "/assets",
-        #         StaticFiles(directory=os.path.join(FRONTEND_DIST, "assets")),
-        #         name="assets",
-        #     )
 
-        #     @self.app.get("/")
-        #     async def serve_root():
-        #         index_path = os.path.join(FRONTEND_DIST, "index.html")
-        #         return FileResponse(index_path)
+        api_router = APIRouter(prefix="/api")
+        ws_router = APIRouter(prefix="/ws")
 
-        # else:
-
-        #     @self.app.get("/")
-        #     async def frontend_not_found():
-        #         return {
-        #             "message": "Frontend not found. Please build the frontend first."
-        #         }
-
-        @self.app.get("/api/get_info/")
+        @api_router.get("/get_info/")
         async def get_train_state():
             """
             HTTP GET endpoint to retrieve the current training state.
@@ -476,7 +460,7 @@ class InteractiveServer:
                     "run_name": self._train_state.run_name,
                 }
 
-        @self.app.get("/api/get_dataset_info/")
+        @api_router.get("/get_dataset_info/")
         async def get_dataset_info():
             """
             HTTP GET endpoint to retrieve the current dataset state.
@@ -491,7 +475,7 @@ class InteractiveServer:
                 print("Dataset info:", ret)
                 return ret
 
-        @self.app.get("/api/get_optimizer_info/")
+        @api_router.get("/get_optimizer_info/")
         async def get_optimizer_info():
             """
             HTTP GET endpoint to retrieve the current training state.
@@ -500,7 +484,7 @@ class InteractiveServer:
             with self._train_state_lock:
                 return self._train_state.optimizer_states
 
-        @self.app.get("/api/get_model_info/")
+        @api_router.get("/get_model_info/")
         async def get_model_info():
             """
             HTTP GET endpoint to retrieve the current model information.
@@ -509,7 +493,7 @@ class InteractiveServer:
             with self._train_state_lock:
                 return self._train_state.model_infos
 
-        @self.app.get("/api/get_checkpoints/")
+        @api_router.get("/get_checkpoints/")
         async def get_checkpoints():
             """
             HTTP GET endpoint to retrieve the list of checkpoints.
@@ -518,7 +502,7 @@ class InteractiveServer:
             with self._train_state_lock:
                 return self._train_state.checkpoints
 
-        @self.app.get("/api/get_logs/")
+        @api_router.get("/get_logs/")
         async def get_logs():
             """
             HTTP GET endpoint to retrieve the training logs.
@@ -527,7 +511,7 @@ class InteractiveServer:
                 serialized_logs = self._serialize_logs()
                 return serialized_logs
 
-        @self.app.post("/api/command/")
+        @api_router.post("/command/")
         async def receive_command(cmd: Cmd):
             """
             HTTP POST endpoint to receive a command from a client.
@@ -560,7 +544,7 @@ class InteractiveServer:
 
             return {"status": "success"}
 
-        @self.app.websocket("/ws/message/")
+        @ws_router.websocket("/message/")
         async def websocket_message(websocket: WebSocket):
             """
             WebSocket endpoint that streams events (from events_queue) to clients.
@@ -611,6 +595,29 @@ class InteractiveServer:
                 logger.info(
                     f"WebSocket connection removed from listeners: {websocket.client}"
                 )
+
+        self.app.include_router(api_router)
+        self.app.include_router(ws_router)
+
+        if os.path.exists(FRONTEND_DIST):
+            self.app.mount(
+                "/assets",
+                StaticFiles(directory=os.path.join(FRONTEND_DIST, "assets")),
+                name="assets",
+            )
+
+            @self.app.get("/{full_path:path}", response_class=FileResponse)
+            async def serve_root():
+                index_path = os.path.join(FRONTEND_DIST, "index.html")
+                return FileResponse(index_path)
+
+        else:
+
+            @self.app.get("/")
+            async def frontend_not_found():
+                return {
+                    "message": "Frontend not found. Please build the frontend first."
+                }
 
     def run(self):
         """
