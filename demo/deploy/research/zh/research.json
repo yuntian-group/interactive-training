@@ -1,0 +1,80 @@
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "@id": "https://interactivetraining.ai/zh/#webpage",
+  "url": "https://interactivetraining.ai/zh/",
+  "name": "Interactive Training（交互式训练）— 人与 AI 智能体实时干预模型训练",
+  "description": "Interactive Training（交互式训练）把实时训练指标与人工、AI 智能体的操作连接起来。观察训练，提交调整，再查看训练进程实际执行了什么、效果如何。",
+  "about": [
+    {
+      "@type": "ScholarlyArticle",
+      "name": "Interactive Training: Feedback-Driven Neural Network Optimization",
+      "url": "https://aclanthology.org/2025.emnlp-demos.65/",
+      "datePublished": "2025",
+      "author": [
+        {
+          "@type": "Person",
+          "name": "Wentao Zhang"
+        },
+        {
+          "@type": "Person",
+          "name": "Yang Young Lu"
+        },
+        {
+          "@type": "Person",
+          "name": "Yuntian Deng",
+          "url": "https://yuntiandeng.com/"
+        }
+      ]
+    },
+    {
+      "@type": "ScholarlyArticle",
+      "name": "Interactive Training 2: Auditable Control Plane for Live Model Training",
+      "url": "https://arxiv.org/abs/2607.18314",
+      "datePublished": "2026",
+      "author": [
+        {
+          "@type": "Person",
+          "name": "Wentao Zhang"
+        },
+        {
+          "@type": "Person",
+          "name": "Xuanhe Pan"
+        },
+        {
+          "@type": "Person",
+          "name": "Han Zhou"
+        },
+        {
+          "@type": "Person",
+          "name": "Yang Lu"
+        },
+        {
+          "@type": "Person",
+          "name": "Yuntian Deng",
+          "url": "https://yuntiandeng.com/"
+        }
+      ]
+    }
+  ],
+  "inLanguage": "zh-Hans",
+  "translationOfWork": {
+    "@id": "https://interactivetraining.ai/#webpage",
+    "url": "https://interactivetraining.ai/",
+    "inLanguage": "en"
+  },
+  "relatedLink": [
+    "https://yuntiandeng.com/research/zh/interactive-training/",
+    "https://yuntiandeng.com/research/interactive-training/",
+    "https://interactivetraining.ai/live",
+    "https://github.com/yuntian-group/interactive-training"
+  ],
+  "encoding": [
+    {
+      "@type": "MediaObject",
+      "contentUrl": "https://interactivetraining.ai/zh/index.md",
+      "encodingFormat": "text/markdown",
+      "inLanguage": "zh-Hans"
+    }
+  ]
+}
